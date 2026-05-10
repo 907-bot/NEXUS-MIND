@@ -1,10 +1,13 @@
-"use client";
-
-import { ClerkProvider } from "@clerk/nextjs";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Providers } from "@/components/Providers";
 
 const inter = Inter({ subsets: ["latin"] });
+
+export const metadata = {
+  title: "NexusMind - Autonomous AI Network",
+  description: "Next-generation multi-agent swarm intelligence",
+};
 
 export default function RootLayout({
   children,
@@ -12,12 +15,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
+    <Providers>
       <html lang="en" className="dark">
         <body className={`${inter.className} bg-gray-950 text-gray-100 min-h-screen antialiased`}>
           {children}
         </body>
       </html>
-    </ClerkProvider>
+    </Providers>
   );
 }
