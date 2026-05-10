@@ -1,0 +1,138 @@
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel
+from app.agents.planner_agent import PlannerAgent
+from app.agents.orchestrator import Orchestrator
+from app.core.gemini_client import gemini
+from app.core.memory_store import memory_store
+from app.api.middleware import get_current_user
+from app.database import AsyncSessionLocal
+from app.models.session import Session
+from app.models.task import Task
+import uuid
+import time
+from collections import defaultdict
+from typing import Dict, List
+
+router = APIRouter(prefix="/api/tasks", tags=["tasks"])
+
+# ── In-memory rate limiter: max 10 goal submissions per user per hour ─────────
+_rate_limit_store: Dict[str, List[float]] = defaultdict(list)
+RATE_LIMIT_MAX = 10
+RATE_LIMIT_WINDOW = 3600  # seconds
+
+
+def _check_rate_limit(user_id: str) -> bool:
+    """Return True if within rate limit, False if exceeded."""
+    now = time.time()
+    window_start = now - RATE_LIMIT_WINDOW
+    calls = _rate_limit_store[user_id]
+    _rate_limit_store[user_id] = [t for t in calls if t > window_start]
+    if len(_rate_limit_store[user_id]) >= RATE_LIMIT_MAX:
+        return False
+    _rate_limit_store[user_id].append(now)
+    return True
+
+
+class GoalRequest(BaseModel):
+    goal: str
+
+
+async def run_nexusmind_pipeline(session_id: str, goal: str, user_id: str):
+    """Background task: plan → orchestrate → persist results to PostgreSQL."""
+    try:
+        await memory_store.set_status(session_id, "planning")
+
+        # Persist session to PostgreSQL
+        async with AsyncSessionLocal() as db:
+            db_session = Session(id=session_id, user_id=user_id, goal=goal, status="planning")
+            db.add(db_session)
+            await db.commit()
+
+        # Step 1: Decompose Goal into Task Graph
+        planner = PlannerAgent(gemini, memory_store)
+        result = await planner.execute(session_id, {"goal": goal})
+        task_graph = result.get("task_graph", [])
+
+        if not task_graph:
+            await memory_store.publish_event(session_id, {
+                "agent": "System",
+                "type": "ERROR",
+                "data": {"message": "Failed to generate task graph."},
+            })
+            await memory_store.set_status(session_id, "failed")
+            async with AsyncSessionLocal() as db:
+                db_sess = await db.get(Session, session_id)
+                if db_sess:
+                    db_sess.status = "failed"
+                    await db.commit()
+            return
+
+        # Persist planned tasks to PostgreSQL
+        async with AsyncSessionLocal() as db:
+            for t in task_graph:
+                db_task = Task(
+                    session_id=session_id,
+                    task_id=t["task_id"],
+                    description=t["description"],
+                    skill_tag=t.get("skill_tag", "content"),
+                    status="pending",
+                )
+                db.add(db_task)
+            db_sess = await db.get(Session, session_id)
+            if db_sess:
+                db_sess.status = "executing"
+            await db.commit()
+
+        # Step 2: Execute Graph via Orchestrator
+        await memory_store.set_status(session_id, "executing")
+        orchestrator = Orchestrator(gemini, memory_store)
+        await orchestrator.run(session_id, task_graph)
+
+        await memory_store.set_status(session_id, "completed")
+        async with AsyncSessionLocal() as db:
+            db_sess = await db.get(Session, session_id)
+            if db_sess:
+                db_sess.status = "completed"
+            await db.commit()
+
+    except Exception as e:
+        await memory_store.set_status(session_id, "failed")
+        await memory_store.publish_event(session_id, {
+            "agent": "System",
+            "type": "PIPELINE_ERROR",
+            "data": {"error": str(e)},
+        })
+        async with AsyncSessionLocal() as db:
+            db_sess = await db.get(Session, session_id)
+            if db_sess:
+                db_sess.status = "failed"
+            await db.commit()
+
+
+@router.post("/submit")
+async def submit_goal(
+    request: GoalRequest,
+    background_tasks: BackgroundTasks,
+    user=Depends(get_current_user),
+):
+    """Submit a new goal for multi-agent processing."""
+    user_id = user["user_id"]
+
+    # Rate limiting: 10 submissions per user per hour
+    if not _check_rate_limit(user_id):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded: max {RATE_LIMIT_MAX} submissions per hour.",
+        )
+
+    session_id = str(uuid.uuid4())
+    await memory_store.set_status(session_id, "initialized")
+
+    background_tasks.add_task(run_nexusmind_pipeline, session_id, request.goal, user_id)
+
+    return {
+        "session_id": session_id,
+        "status": "processing",
+        "user_id": user_id,
+        "estimated_completion_ms": 30_000,
+    }
