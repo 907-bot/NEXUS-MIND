@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Brain, Zap, GitBranch, Shield, ArrowRight, Cpu, Activity, Globe, Lock, Code2 } from "lucide-react";
 import { useState, useEffect } from "react";

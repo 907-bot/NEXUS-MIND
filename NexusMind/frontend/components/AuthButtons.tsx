@@ -5,11 +5,10 @@ import {
   SignUpButton,
   UserButton,
   useAuth,
-} from "@clerk/nextjs";
+} from "@clerk/clerk-react";
 import { LogIn, UserPlus } from "lucide-react";
 
 interface AuthButtonsProps {
-  /** Show compact icon-only variant (useful in tight navbars) */
   compact?: boolean;
 }
 
@@ -19,7 +18,6 @@ export default function AuthButtons({ compact = false }: AuthButtonsProps) {
   if (isSignedIn) {
     return (
       <UserButton
-        afterSignOutUrl="/"
         appearance={{
           elements: {
             avatarBox: "w-9 h-9",
