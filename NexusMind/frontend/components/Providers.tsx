@@ -1,18 +1,24 @@
 "use client";
 
 import { ClerkProvider } from "@clerk/clerk-react";
+import { useRouter } from "next/navigation";
+
+const BASE_PATH = process.env.NODE_ENV === "production" ? "/NEXUS-MIND" : "";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
   if (!publishableKey) {
-    // In static export, we might not have the key at build time if not in vars.
-    // But we need it for the runtime.
     return <>{children}</>;
   }
 
   return (
-    <ClerkProvider publishableKey={publishableKey}>
+    <ClerkProvider
+      publishableKey={publishableKey}
+      afterSignInUrl={`${BASE_PATH}/dashboard/`}
+      afterSignUpUrl={`${BASE_PATH}/dashboard/`}
+      afterSignOutUrl={`${BASE_PATH}/`}
+    >
       {children}
     </ClerkProvider>
   );
