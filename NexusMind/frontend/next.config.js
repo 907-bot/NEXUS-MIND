@@ -3,6 +3,7 @@ const nextConfig = {
   output: "export",
   trailingSlash: true,
   images: { unoptimized: true },
+  optimizeFonts: false,
   basePath: process.env.NODE_ENV === "production" ? "/NEXUS-MIND" : "",
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
