@@ -1,8 +1,8 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
-import { useParams, useRouter } from "next/navigation";
-import { useState, useCallback, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import OutputPanel from "@/components/OutputPanel";
 import TaskTimeline from "@/components/TaskTimeline";
 import AgentGraph from "@/components/AgentGraph";
@@ -25,8 +25,9 @@ const KNOWN_AGENTS = [
   "AssemblerAgent",
 ];
 
-export default function SessionPage() {
-  const { id: sessionId } = useParams<{ id: string }>();
+function SessionContent() {
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("id");
   const router = useRouter();
   const { getToken, isLoaded } = useAuth();
 
@@ -38,7 +39,7 @@ export default function SessionPage() {
 
   // Fetch token and initial session status on mount
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !sessionId) return;
     (async () => {
       const t = await getToken();
       if (!t) { router.push("/"); return; }
@@ -83,6 +84,14 @@ export default function SessionPage() {
   const activeAgents = [
     ...new Set(events.map((e) => e.agent).filter((a) => KNOWN_AGENTS.includes(a))),
   ];
+
+  if (!sessionId) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-950 text-white">
+        <p>No Session ID provided.</p>
+      </div>
+    );
+  }
 
   if (!isLoaded || !token) {
     return (
@@ -181,5 +190,13 @@ export default function SessionPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SessionPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-gray-950"><Loader2 className="w-8 h-8 animate-spin text-purple-500" /></div>}>
+      <SessionContent />
+    </Suspense>
   );
 }
