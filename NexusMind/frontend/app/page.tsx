@@ -31,6 +31,13 @@ const FEATURES = [
     desc: "Dedicated review loops ensure output quality, security, and logical consistency.",
     color: "from-indigo-500 to-blue-500",
   },
+  {
+    icon: Code2,
+    title: "Instant Games",
+    desc: "Built-in premium mini-games like Tic-Tac-Toe to demonstrate real-time UI generation.",
+    color: "from-pink-500 to-rose-500",
+    link: "/tic-tac-toe",
+  },
 ];
 
 const STATS = [
@@ -211,11 +218,11 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {FEATURES.map((f, i) => (
-              <motion.div
-                key={f.title}
-                whileHover={{ y: -10 }}
-                className="group relative p-8 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all"
-              >
+              <Link href={f.link || "#"} key={f.title}>
+                <motion.div
+                  whileHover={{ y: -10 }}
+                  className="group relative p-8 h-full rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all"
+                >
                 <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${f.color} p-[1px] mb-8 group-hover:rotate-6 transition-transform`}>
                   <div className="w-full h-full bg-[#0a0a0c] rounded-2xl flex items-center justify-center">
                     <f.icon className="w-8 h-8 text-white" />
@@ -227,7 +234,8 @@ export default function LandingPage() {
                 <div className="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Code2 className="w-5 h-5 text-cyan-500" />
                 </div>
-              </motion.div>
+                </motion.div>
+              </Link>
             ))}
           </div>
         </div>

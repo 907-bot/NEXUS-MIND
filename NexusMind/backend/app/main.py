@@ -5,6 +5,7 @@ from app.config import settings
 from app.api.routes import tasks, stream, agents, sessions
 from app.core.agent_registry import bootstrap_registry
 from app.tools.tool_registry import bootstrap_tools
+from app.core.mcp_manager import mcp_manager
 from app.database import init_db
 
 
@@ -17,12 +18,14 @@ async def lifespan(app: FastAPI):
     # ── Startup ──────────────────────────────────────────────────────────────
     bootstrap_registry()
     bootstrap_tools()          # BUG FIX: was never called — tools were unregistered
+    await mcp_manager.start()  # Connect to external MCP servers
     await init_db()
-    print("✅ NexusMind API started — agents registered, tools registered, DB tables created.")
+    print("✅ NexusMind API started — agents registered, tools registered, MCP connected, DB tables created.")
 
     yield  # Application runs
 
     # ── Shutdown ─────────────────────────────────────────────────────────────
+    await mcp_manager.stop()   # Close MCP connections
     print("🛑 NexusMind API shutting down.")
 
 
