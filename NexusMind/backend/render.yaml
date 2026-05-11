@@ -22,7 +22,7 @@ services:
       - key: CLERK_JWT_ISSUER
         sync: false
       - key: CORS_ORIGINS
-        value: "https://yourusername.github.io"
+        value: "https://907-bot.github.io,https://907-bot.github.io/NEXUS-MIND,https://907-bot.github.io/NEXUS-MIND/"
 
   - type: redis
     name: nexusmind-redis
