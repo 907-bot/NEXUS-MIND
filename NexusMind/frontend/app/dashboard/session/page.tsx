@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/clerk-safe";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useCallback, useEffect, Suspense } from "react";
 import OutputPanel from "@/components/OutputPanel";

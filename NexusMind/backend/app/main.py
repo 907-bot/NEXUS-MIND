@@ -52,6 +52,14 @@ app.include_router(agents.router)
 app.include_router(sessions.router)
 
 
+@app.get("/")
+async def root():
+    return {
+        "message": "Welcome to NexusMind API",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
 @app.get("/health", tags=["health"])
 async def health():
     return {

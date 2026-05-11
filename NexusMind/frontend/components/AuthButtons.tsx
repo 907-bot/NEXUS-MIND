@@ -5,7 +5,7 @@ import {
   SignUpButton,
   UserButton,
   useAuth,
-} from "@clerk/clerk-react";
+} from "@/lib/clerk-safe";
 import { LogIn, UserPlus } from "lucide-react";
 
 interface AuthButtonsProps {

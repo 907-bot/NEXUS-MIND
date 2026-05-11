@@ -5,6 +5,8 @@ from typing import List
 class Settings(BaseSettings):
     # Google AI
     GEMINI_API_KEY: str
+    GOOGLE_API_KEY: str = ""
+    GOOGLE_SEARCH_ENGINE_ID: str = ""
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379"

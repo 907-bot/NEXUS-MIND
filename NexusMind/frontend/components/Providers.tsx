@@ -8,7 +8,8 @@ const BASE_PATH = process.env.NODE_ENV === "production" ? "/NEXUS-MIND" : "";
 export function Providers({ children }: { children: React.ReactNode }) {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-  if (!publishableKey) {
+  if (!publishableKey || publishableKey === "pk_test_..." || publishableKey === "pk_live_...") {
+    console.warn("Clerk Publishable Key is missing or a placeholder. Authentication will be disabled.");
     return <>{children}</>;
   }
 

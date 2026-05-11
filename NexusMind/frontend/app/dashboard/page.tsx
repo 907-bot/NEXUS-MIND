@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/lib/clerk-safe";
 import { useState, useCallback } from "react";
 import GoalInput from "@/components/GoalInput";
 import TaskTimeline from "@/components/TaskTimeline";
