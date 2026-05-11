@@ -38,20 +38,22 @@ class MCPManager:
             base_args = ["-y"]
 
         server_configs = [
-            {
-                "name": "google_search",
-                "command": command,
-                "args": base_args + ["@mcp-for-dev/mcp-google-search"],
-                "env": {
-                    "GOOGLE_API_KEY": google_key,
-                    "GOOGLE_SEARCH_ENGINE_ID": google_cx
-                }
-            },
-            {
-                "name": "sequential_thinking",
-                "command": command,
-                "args": base_args + ["@modelcontextprotocol/server-sequential-thinking"],
-            }
+            # NOTE: These MCP servers are disabled due to npm 404 errors
+            # The core NexusMind functionality works without them
+            # {
+            #     "name": "google_search",
+            #     "command": command,
+            #     "args": base_args + ["@mcp-for-dev/mcp-google-search"],
+            #     "env": {
+            #         "GOOGLE_API_KEY": google_key,
+            #         "GOOGLE_SEARCH_ENGINE_ID": google_cx
+            #     }
+            # },
+            # {
+            #     "name": "sequential_thinking",
+            #     "command": command,
+            #     "args": base_args + ["@modelcontextprotocol/server-sequential-thinking"],
+            # }
         ]
 
         for config in server_configs:
