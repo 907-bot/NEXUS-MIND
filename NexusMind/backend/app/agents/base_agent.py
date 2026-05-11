@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from app.core.gemini_client import GeminiClient
 from app.core.memory_store import MemoryStore
 from app.core.message_bus import message_bus
+from app.core.openrouter_client import create_llm_client
 import time
 
 
@@ -21,9 +22,26 @@ class BaseAgent(ABC):
     name: str = "BaseAgent"
     skill_tags: list[str] = []
 
-    def __init__(self, gemini: GeminiClient, memory: MemoryStore):
-        self.gemini = gemini
+    def __init__(self, gemini: GeminiClient, memory: MemoryStore, use_openrouter: bool = True):
+        """
+        Initialize agent with LLM client.
+        
+        Args:
+            gemini: GeminiClient instance (fallback)
+            memory: MemoryStore instance
+            use_openrouter: If True, uses OpenRouter with agent-specific model
+        """
         self.memory = memory
+        
+        # Use OpenRouter if enabled and key is configured, otherwise fallback to Gemini
+        if use_openrouter:
+            self.gemini = create_llm_client(agent_name=self.name)
+            model_info = getattr(self.gemini, 'model', 'unknown')
+            client_type = type(self.gemini).__name__
+            print(f"🤖 [AGENT] {self.name} initialized with {client_type} (model: {model_info})")
+        else:
+            self.gemini = gemini
+            print(f"🤖 [AGENT] {self.name} initialized with GeminiClient (fallback)")
 
     @abstractmethod
     async def execute(self, session_id: str, task: dict) -> dict:

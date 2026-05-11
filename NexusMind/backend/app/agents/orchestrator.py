@@ -40,9 +40,11 @@ AGENT_REGISTRY_ID = {
 
 
 class Orchestrator:
-    def __init__(self, gemini: GeminiClient, memory: MemoryStore):
+    def __init__(self, gemini: GeminiClient, memory: MemoryStore, use_openrouter: bool = True):
         self.gemini = gemini
         self.memory = memory
+        self.use_openrouter = use_openrouter
+        print(f"🎭 [Orchestrator] Initialized (OpenRouter: {'✅ Enabled' if use_openrouter else '❌ Disabled'})")
 
     async def run(self, session_id: str, task_list: List[dict]):
         """
@@ -78,7 +80,7 @@ class Orchestrator:
 
             MAX_REVISION_CYCLES = 2
             for cycle in range(MAX_REVISION_CYCLES):
-                critic = CriticAgent(self.gemini, self.memory)
+                critic = CriticAgent(self.gemini, self.memory, use_openrouter=self.use_openrouter)
                 review_result = await critic.execute(session_id, {"outputs": all_outputs})
 
                 # ── Audit: store Critic output ─────────────────────────────────
@@ -132,7 +134,7 @@ class Orchestrator:
                 all_outputs = await self.memory.get_all(session_id)
 
             # ── Final Assembly ─────────────────────────────────────────────────
-            assembler = AssemblerAgent(self.gemini, self.memory)
+            assembler = AssemblerAgent(self.gemini, self.memory, use_openrouter=self.use_openrouter)
             # Mark assembler busy in registry
             agent_registry.mark_busy(AGENT_REGISTRY_ID[AssemblerAgent])
             try:
@@ -180,7 +182,7 @@ class Orchestrator:
         })
 
         try:
-            agent = AgentClass(self.gemini, self.memory)
+            agent = AgentClass(self.gemini, self.memory, use_openrouter=self.use_openrouter)
             result = await agent.execute(session_id, {
                 "task_id": node.task_id,
                 "description": node.description,

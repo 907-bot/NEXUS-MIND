@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: str = ""
     GOOGLE_SEARCH_ENGINE_ID: str = ""
 
+    # OpenRouter
+    OPENROUTER_API_KEY: str = ""
+
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
 

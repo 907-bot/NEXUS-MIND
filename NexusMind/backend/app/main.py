@@ -16,11 +16,30 @@ async def lifespan(app: FastAPI):
     Replaces the deprecated @app.on_event("startup") pattern.
     """
     # ── Startup ──────────────────────────────────────────────────────────────
+    print("🚀 [MAIN] Starting NexusMind API initialization...")
+    
+    print("📋 [MAIN] Bootstrapping agent registry...")
     bootstrap_registry()
+    print("✅ [MAIN] Agent registry initialized")
+    
+    print("🔧 [MAIN] Bootstrapping tools...")
     bootstrap_tools()          # BUG FIX: was never called — tools were unregistered
+    print("✅ [MAIN] Tools registered")
+    
+    print("🔗 [MAIN] Starting MCP manager...")
     await mcp_manager.start()  # Connect to external MCP servers
+    print("✅ [MAIN] MCP manager connected")
+    
+    print("💾 [MAIN] Initializing database...")
     await init_db()
-    print("✅ NexusMind API started — agents registered, tools registered, MCP connected, DB tables created.")
+    print("✅ [MAIN] Database tables created")
+    
+    print("🎯 [MAIN] LLM Configuration:")
+    from app.config import settings
+    print(f"     - Gemini API Key: {'✅ Set' if settings.GEMINI_API_KEY else '❌ Not Set'}")
+    print(f"     - OpenRouter API Key: {'✅ Set' if settings.OPENROUTER_API_KEY else '❌ Not Set'}")
+    
+    print("✅ NexusMind API FULLY STARTED — Ready for requests!")
 
     yield  # Application runs
 
@@ -67,4 +86,8 @@ async def health():
         "service": "NexusMind",
         "version": "1.0.0",
         "environment": settings.APP_ENV,
+        "llm_config": {
+            "gemini": bool(settings.GEMINI_API_KEY),
+            "openrouter": bool(settings.OPENROUTER_API_KEY),
+        }
     }

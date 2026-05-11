@@ -1,0 +1,66 @@
+[
+  {
+    "agent": "BackendAgent",
+    "model": "qwen/qwen3-coder:free",
+    "success": false,
+    "valid": false,
+    "usage": null,
+    "error": "OpenRouter JSON generation failed: Cannot connect to host openrouter.ai:443 ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)')]"
+  },
+  {
+    "agent": "FrontendAgent",
+    "model": "qwen/qwen3-coder:free",
+    "success": false,
+    "valid": false,
+    "usage": null,
+    "error": "OpenRouter JSON generation failed: Cannot connect to host openrouter.ai:443 ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)')]"
+  },
+  {
+    "agent": "DataAgent",
+    "model": "google/gemma-4-31b-it:free",
+    "success": false,
+    "valid": false,
+    "usage": null,
+    "error": "OpenRouter JSON generation failed: Cannot connect to host openrouter.ai:443 ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)')]"
+  },
+  {
+    "agent": "ResearchAgent",
+    "model": "meta-llama/llama-3.3-70b-instruct:free",
+    "success": false,
+    "valid": false,
+    "usage": null,
+    "error": "OpenRouter JSON generation failed: Cannot connect to host openrouter.ai:443 ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)')]"
+  },
+  {
+    "agent": "DevOpsAgent",
+    "model": "meta-llama/llama-3.3-70b-instruct:free",
+    "success": false,
+    "valid": false,
+    "usage": null,
+    "error": "OpenRouter JSON generation failed: Cannot connect to host openrouter.ai:443 ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)')]"
+  },
+  {
+    "agent": "ContentAgent",
+    "model": "meta-llama/llama-3.3-70b-instruct:free",
+    "success": false,
+    "valid": false,
+    "usage": null,
+    "error": "OpenRouter JSON generation failed: Cannot connect to host openrouter.ai:443 ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)')]"
+  },
+  {
+    "agent": "CriticAgent",
+    "model": "openai/gpt-oss-120b:free",
+    "success": false,
+    "valid": false,
+    "usage": null,
+    "error": "OpenRouter JSON generation failed: Cannot connect to host openrouter.ai:443 ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)')]"
+  },
+  {
+    "agent": "AssemblerAgent",
+    "model": "nvidia/nemotron-3-super-120b-a3b:free",
+    "success": false,
+    "valid": false,
+    "usage": null,
+    "error": "OpenRouter JSON generation failed: Cannot connect to host openrouter.ai:443 ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)')]"
+  }
+]

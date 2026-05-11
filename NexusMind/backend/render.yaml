@@ -8,6 +8,8 @@ services:
     envVars:
       - key: GEMINI_API_KEY
         sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false  # NEW: For OpenRouter free models
       - key: REDIS_URL
         sync: false  # Set manually in Render dashboard from REDIS_URL Key Value service
       - key: DATABASE_URL

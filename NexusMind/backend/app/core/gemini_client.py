@@ -17,6 +17,11 @@ SAFETY_SETTINGS = {
 
 class GeminiClient:
     def __init__(self, temperature: float = 0.7, max_tokens: int = 4096):
+        api_status = "✅ API Key Set" if settings.GEMINI_API_KEY else "❌ No API Key"
+        print(f"🔌 [Gemini] Client initialized")
+        print(f"     Model: gemini-1.5-flash")
+        print(f"     Status: {api_status}")
+        
         self.model = genai.GenerativeModel(
             "gemini-1.5-flash",
             safety_settings=SAFETY_SETTINGS,
