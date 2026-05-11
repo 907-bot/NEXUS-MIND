@@ -24,7 +24,10 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:8000",
-        "https://907-bot.github.io"
+        "https://907-bot.github.io",
+        "https://907-bot.github.io/NEXUS-MIND",
+        "https://907-bot.github.io/NEXUS-MIND/",
+        "*"  # Temporary: Allow all origins (remove in production for security)
     ]
 
     class Config:
