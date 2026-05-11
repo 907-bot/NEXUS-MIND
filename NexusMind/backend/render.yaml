@@ -10,8 +10,8 @@ services:
         sync: false
       - key: REDIS_URL
         fromService:
-          name: nexusmind-redis
-          type: redis
+          name: REDIS_URL
+          type: keyvalue
           property: connectionString
       - key: DATABASE_URL
         fromDatabase:
@@ -24,10 +24,7 @@ services:
       - key: CORS_ORIGINS
         value: "https://907-bot.github.io,https://907-bot.github.io/NEXUS-MIND,https://907-bot.github.io/NEXUS-MIND/"
 
-  - type: redis
-    name: nexusmind-redis
-    plan: starter
-    maxmemoryPolicy: allkeys-lru
+  # Key Value service REDIS_URL already created manually in Render dashboard
 
 databases:
   - name: nexusmind-db
