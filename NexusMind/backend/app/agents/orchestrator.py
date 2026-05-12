@@ -193,13 +193,20 @@ class Orchestrator:
 
         try:
             agent = AgentClass(self.gemini, self.memory, use_openrouter=self.use_openrouter)
-            print(f"🤖 [ORCHESTRATOR] Agent '{agent_name}' initialized/started for task: {node.task_id}")
+            print(f"🤖 [AGENT] {agent_name} STARTING: {node.task_id}")
             result = await agent.execute(session_id, {
                 "task_id": node.task_id,
                 "description": node.description,
                 "skill_tag": node.skill_tag,
                 "context": completed,
             })
+            
+            # BOLD LOG for Render Console debugging
+            print("\n" + "-"*30)
+            print(f"✅ [AGENT] {agent_name} COMPLETED: {node.task_id}")
+            print(f"📄 RESPONSE: {str(result.get('summary', ''))[:200]}...")
+            print("-"*30 + "\n")
+            
             graph.mark_done(node.task_id, result)
             completed[node.task_id] = result
 

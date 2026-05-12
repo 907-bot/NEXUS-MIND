@@ -33,6 +33,14 @@ class PlannerAgent(BaseAgent):
             task_graph = task_graph.get("tasks", [])
 
         await self.memory.set(session_id, "task_graph", task_graph)
+        
+        # BOLD LOG for Render Console debugging
+        print("\n" + "="*50)
+        print(f"📝 [PLANNER] GENERATED {len(task_graph)} TASKS FOR SESSION {session_id}")
+        for t in task_graph:
+            print(f"  - [{t.get('skill_tag')}] {t.get('task_id')}: {t.get('description')}")
+        print("="*50 + "\n")
+
         await self.emit_event(
             session_id,
             "PLANNING_COMPLETE",
