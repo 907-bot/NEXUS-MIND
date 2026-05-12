@@ -8,7 +8,7 @@ import json
 router = APIRouter(prefix="/api/stream", tags=["stream"])
 
 # Maximum time (seconds) to wait for a new event before sending a keep-alive ping.
-KEEPALIVE_INTERVAL = 15
+KEEPALIVE_INTERVAL = 5
 
 
 @router.get("/{session_id}")
