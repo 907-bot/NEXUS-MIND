@@ -10,7 +10,7 @@ interface StreamConsumerProps {
   onEvent: (event: AgentEvent) => void;
   onFinalOutput: (content: string) => void;
   onDone: () => void;
-  onError: () => void;
+  onError: (message?: string) => void;
 }
 
 /**
@@ -60,14 +60,15 @@ export default function StreamConsumer({
       }
 
       if (event.type === "PIPELINE_ERROR" || event.type === "ERROR") {
-        onError();
+        const errMsg = event.data?.error ?? event.data?.message ?? "Pipeline failed. Check Render logs for details.";
+        onError(errMsg);
         es.close();
       }
     };
 
     es.onerror = () => {
       es.close();
-      onError();
+      onError("Stream connection lost. Check your network or try again.");
     };
   }, [sessionId, token, onEvent, onFinalOutput, onDone, onError]);
 

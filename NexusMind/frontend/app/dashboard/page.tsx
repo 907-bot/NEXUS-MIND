@@ -56,9 +56,9 @@ export default function Dashboard() {
     setIsProcessing(false);
   }, []);
 
-  const handleError = useCallback(() => {
+  const handleError = useCallback((message?: string) => {
     setIsProcessing(false);
-    setError("Stream connection lost. Check your network or try again.");
+    setError(message ?? "An unexpected error occurred. Please try again.");
   }, []);
 
   if (!isLoaded) {

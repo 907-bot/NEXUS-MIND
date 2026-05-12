@@ -41,11 +41,11 @@ class OpenRouterClient:
         "DevOpsAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "ContentAgent": "meta-llama/llama-3.3-70b-instruct:free",
         
-        # Tier 5: Reasoning / QA (GPT-OSS 120B)
-        "CriticAgent": "openai/gpt-oss-120b:free",
+        # Tier 5: Reasoning / QA (DeepSeek R1 free)
+        "CriticAgent": "deepseek/deepseek-r1:free",
         
-        # Tier 6: Complex aggregation (Nemotron Super)
-        "AssemblerAgent": "nvidia/nemotron-3-super-120b-a3b:free",
+        # Tier 6: Complex aggregation (Llama 3.3 70B fallback for assembly)
+        "AssemblerAgent": "meta-llama/llama-3.3-70b-instruct:free",
     }
     
     def __init__(
@@ -179,21 +179,35 @@ class OpenRouterClient:
         raise RuntimeError("Max retries exceeded")
     
     async def generate_json(self, system_prompt: str, user_message: str) -> dict | list:
-        """Generate JSON response using response_format."""
+        """
+        Generate JSON response using prompt-based extraction.
+        
+        NOTE: We intentionally do NOT use response_format={"type": "json_object"}
+        because most free models on OpenRouter (Llama, Qwen, Gemma) do not support
+        that parameter and return a 400/422 error. Instead we instruct the model
+        in the prompt to reply with pure JSON and strip any markdown fences.
+        """
         if not self.api_key:
             raise ValueError("OPENROUTER_API_KEY not configured")
         
+        # Append explicit JSON instruction to ensure model outputs raw JSON
+        json_instruction = (
+            "\n\nIMPORTANT: Your response MUST be valid JSON only. "
+            "Do NOT include any text, explanation, or markdown fences outside the JSON. "
+            "Output ONLY the raw JSON object or array."
+        )
+        
         messages = [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": system_prompt + json_instruction},
             {"role": "user", "content": user_message},
         ]
         
+        # No response_format — not supported by most free models
         payload = {
             "model": self.model,
             "messages": messages,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
-            "response_format": {"type": "json_object"},
         }
         
         for attempt in range(3):
@@ -204,7 +218,7 @@ class OpenRouterClient:
                         f"{self.BASE_URL}/chat/completions",
                         headers=self.headers,
                         json=payload,
-                        timeout=aiohttp.ClientTimeout(total=60),
+                        timeout=aiohttp.ClientTimeout(total=90),
                     ) as response:
                         if response.status == 429:
                             await asyncio.sleep(2 ** attempt)
@@ -219,15 +233,29 @@ class OpenRouterClient:
                         
                         text = data["choices"][0]["message"]["content"]
                         
-                        # Clean up markdown code blocks if present
-                        text = re.sub(r"```json|```", "", text).strip()
+                        # Strip markdown code fences (```json ... ``` or ``` ... ```)
+                        text = re.sub(r"```(?:json)?\s*", "", text).strip()
+                        text = text.strip("`").strip()
                         
+                        # Extract first JSON object/array if model added extra prose
+                        match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
+                        if match:
+                            text = match.group(1)
+                        
+                        print(f"📩 [OpenRouter/{self.model}] JSON response ({len(text)} chars)")
                         return json.loads(text)
                         
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                print(f"⚠️ [OpenRouter] JSON parse failed on attempt {attempt+1}: {e}")
                 if attempt == 2:
-                    raise
-                await asyncio.sleep(1)
+                    raise RuntimeError(f"OpenRouter JSON generation failed: invalid JSON after retries")
+                await asyncio.sleep(2)
+            except aiohttp.ClientResponseError as e:
+                print(f"⚠️ [OpenRouter] HTTP {e.status} on attempt {attempt+1}: {e.message}")
+                if e.status == 429 and attempt < 2:
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                raise RuntimeError(f"OpenRouter API error {e.status}: {e.message}")
             except Exception as e:
                 if "429" in str(e) or "rate limit" in str(e).lower():
                     await asyncio.sleep(2 ** attempt)
