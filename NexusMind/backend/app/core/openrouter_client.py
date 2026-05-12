@@ -29,7 +29,7 @@ class OpenRouterClient:
     
     # Per-agent model assignments (free models)
     AGENT_MODELS = {
-        "PlannerAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        "PlannerAgent": "qwen/qwen3-coder:free", # Qwen is better at JSON
         "BackendAgent": "qwen/qwen3-coder:free",
         "FrontendAgent": "qwen/qwen3-coder:free",
         
@@ -44,8 +44,8 @@ class OpenRouterClient:
         # Tier 5: Reasoning / QA (GPT-OSS 120B)
         "CriticAgent": "openai/gpt-oss-120b:free",
         
-        # Tier 6: Complex aggregation (Llama 3.3 70B fallback for assembly)
-        "AssemblerAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        # Tier 6: Complex aggregation (Qwen 3 Coder)
+        "AssemblerAgent": "qwen/qwen3-coder:free",
     }
     
     def __init__(
@@ -269,7 +269,8 @@ class OpenRouterClient:
                 print(f"⚠️ [OpenRouter] JSON parse failed on attempt {attempt+1}: {e}")
                 print(f"📄 RAW TEXT: {text[:500]}...")
                 if attempt == 2:
-                    raise RuntimeError(f"OpenRouter JSON generation failed: invalid JSON after retries. Error: {e}")
+                    snippet = text[:100] + "..." if len(text) > 100 else text
+                    raise RuntimeError(f"JSON generation failed. Raw snippet: {snippet}. Error: {e}")
                 await asyncio.sleep(2)
             except aiohttp.ClientResponseError as e:
                 print(f"⚠️ [OpenRouter] HTTP {e.status} on attempt {attempt+1}: {e.message}")

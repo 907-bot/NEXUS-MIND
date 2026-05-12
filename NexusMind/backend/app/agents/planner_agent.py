@@ -2,17 +2,17 @@ from app.agents.base_agent import BaseAgent
 
 PLANNER_SYSTEM = """
 You are a master project planner AI. Given a user goal, decompose it into atomic subtasks.
-Output ONLY a JSON array. Each task object must have exactly these fields:
+Output ONLY a JSON array. Do NOT include any markdown formatting, preamble, or postscript.
+
+Each task object must have exactly these fields:
 - task_id: unique string (e.g. "task_001")
 - description: clear, actionable instruction for the executing agent
 - skill_tag: exactly one of [backend, frontend, research, data, content, devops, review]
 - depends_on: list of task_ids this task must wait for (empty list if none)
 - priority: integer 1 (high) to 3 (low)
 
-Rules:
-- Decompose into 3-10 atomic tasks. Do not create overly granular tasks.
-- Ensure the final task has skill_tag "review" and depends on all other tasks.
-- Do NOT include any text outside the JSON array.
+Example:
+[{"task_id": "task_001", "description": "...", "skill_tag": "backend", "depends_on": [], "priority": 1}]
 """
 
 
