@@ -83,3 +83,4 @@ def bootstrap_registry():
     ]
     for a in agents:
         agent_registry.register(a)
+        print(f"📦 [REGISTRY] Agent '{a.name}' ({a.agent_id}) registered with skills: {a.skill_tags}")

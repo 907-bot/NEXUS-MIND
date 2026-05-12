@@ -30,12 +30,23 @@ class Settings(BaseSettings):
         "https://907-bot.github.io",
         "https://907-bot.github.io/NEXUS-MIND",
         "https://907-bot.github.io/NEXUS-MIND/",
-        "*"  # Temporary: Allow all origins (remove in production for security)
     ]
 
     class Config:
         env_file = ".env"
         extra = "ignore"
 
+    @property
+    def async_database_url(self) -> str:
+        """Fix for Render/Heroku providing postgres:// instead of postgresql+asyncpg://"""
+        url = self.DATABASE_URL
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://") and "asyncpg" not in url:
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
+
 
 settings = Settings()
+# Use the fixed URL for the application
+settings.DATABASE_URL = settings.async_database_url

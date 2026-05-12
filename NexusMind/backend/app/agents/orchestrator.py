@@ -53,104 +53,114 @@ class Orchestrator:
         """
         graph = TaskGraph(task_list)
         completed: Dict[str, dict] = {}
+        
+        # Start background ETA logger
+        stop_event = asyncio.Event()
+        eta_task = asyncio.create_task(self._log_eta_periodically(session_id, graph, stop_event))
 
-        while not graph.is_complete():
-            ready_tasks = graph.get_ready()
+        try:
+            while not graph.is_complete():
+                ready_tasks = graph.get_ready()
 
-            if not ready_tasks:
-                if graph.has_stuck():
+                if not ready_tasks:
+                    if graph.has_stuck():
+                        await self.memory.publish_event(session_id, {
+                            "agent": "Orchestrator",
+                            "type": "ERROR",
+                            "data": {"message": "Execution stuck — circular dependency or all tasks failed."},
+                        })
+                        break
+                    await asyncio.sleep(0.5)
+                    continue
+
+                await asyncio.gather(*(
+                    self._execute_task(session_id, node, graph, completed)
+                    for node in ready_tasks
+                ))
+
+            # ── Post-execution: Critic → revision loop → Assembler ────────────────
+            if graph.is_complete():
+                all_outputs = await self.memory.get_all(session_id)
+                review_result = {}
+
+                MAX_REVISION_CYCLES = 2
+                for cycle in range(MAX_REVISION_CYCLES):
+                    critic = CriticAgent(self.gemini, self.memory, use_openrouter=self.use_openrouter)
+                    print(f"🕵️ [ORCHESTRATOR] Agent 'CriticAgent' initialized/started for cycle {cycle}")
+                    review_result = await critic.execute(session_id, {"outputs": all_outputs})
+
+                    # ── Audit: store Critic output ─────────────────────────────────
+                    await self._write_audit(
+                        session_id=session_id,
+                        task_id=f"critic_cycle_{cycle}",
+                        agent_name="CriticAgent",
+                        skill_tag="review",
+                        output=review_result,
+                        quality_score=review_result.get("score"),
+                    )
+
+                    if review_result.get("approved", True):
+                        break
+
+                    high_issues = [
+                        i for i in review_result.get("issues", [])
+                        if i.get("severity") == "high"
+                    ]
+                    if not high_issues:
+                        break
+
                     await self.memory.publish_event(session_id, {
                         "agent": "Orchestrator",
-                        "type": "ERROR",
-                        "data": {"message": "Execution stuck — circular dependency or all tasks failed."},
+                        "type": "REVISION_STARTED",
+                        "data": {"cycle": cycle + 1, "high_issues": len(high_issues)},
                     })
-                    break
-                await asyncio.sleep(0.5)
-                continue
 
-            await asyncio.gather(*(
-                self._execute_task(session_id, node, graph, completed)
-                for node in ready_tasks
-            ))
+                    correction_tasks = [
+                        {
+                            "task_id": f"correction_{issue['task_id']}_c{cycle}",
+                            "description": (
+                                f"Correction for {issue['task_id']}: {issue['issue']}"
+                            ),
+                            "skill_tag": self._skill_for_task(issue["task_id"], graph),
+                            "depends_on": [],
+                            "priority": 1,
+                        }
+                        for issue in high_issues
+                    ]
+                    correction_graph = TaskGraph(correction_tasks)
+                    completed_corrections: dict = {}
+                    while not correction_graph.is_complete():
+                        ready = correction_graph.get_ready()
+                        if not ready:
+                            break
+                        await asyncio.gather(*(
+                            self._execute_task(session_id, node, correction_graph, completed_corrections)
+                            for node in ready
+                        ))
+                    all_outputs = await self.memory.get_all(session_id)
 
-        # ── Post-execution: Critic → revision loop → Assembler ────────────────
-        if graph.is_complete():
-            all_outputs = await self.memory.get_all(session_id)
-            review_result = {}
-
-            MAX_REVISION_CYCLES = 2
-            for cycle in range(MAX_REVISION_CYCLES):
-                critic = CriticAgent(self.gemini, self.memory, use_openrouter=self.use_openrouter)
-                review_result = await critic.execute(session_id, {"outputs": all_outputs})
-
-                # ── Audit: store Critic output ─────────────────────────────────
-                await self._write_audit(
-                    session_id=session_id,
-                    task_id=f"critic_cycle_{cycle}",
-                    agent_name="CriticAgent",
-                    skill_tag="review",
-                    output=review_result,
-                    quality_score=review_result.get("score"),
-                )
-
-                if review_result.get("approved", True):
-                    break
-
-                high_issues = [
-                    i for i in review_result.get("issues", [])
-                    if i.get("severity") == "high"
-                ]
-                if not high_issues:
-                    break
-
-                await self.memory.publish_event(session_id, {
-                    "agent": "Orchestrator",
-                    "type": "REVISION_STARTED",
-                    "data": {"cycle": cycle + 1, "high_issues": len(high_issues)},
-                })
-
-                correction_tasks = [
-                    {
-                        "task_id": f"correction_{issue['task_id']}_c{cycle}",
-                        "description": (
-                            f"Correction for {issue['task_id']}: {issue['issue']}"
-                        ),
-                        "skill_tag": self._skill_for_task(issue["task_id"], graph),
-                        "depends_on": [],
-                        "priority": 1,
-                    }
-                    for issue in high_issues
-                ]
-                correction_graph = TaskGraph(correction_tasks)
-                completed_corrections: dict = {}
-                while not correction_graph.is_complete():
-                    ready = correction_graph.get_ready()
-                    if not ready:
-                        break
-                    await asyncio.gather(*(
-                        self._execute_task(session_id, node, correction_graph, completed_corrections)
-                        for node in ready
-                    ))
-                all_outputs = await self.memory.get_all(session_id)
-
-            # ── Final Assembly ─────────────────────────────────────────────────
-            assembler = AssemblerAgent(self.gemini, self.memory, use_openrouter=self.use_openrouter)
-            # Mark assembler busy in registry
-            agent_registry.mark_busy(AGENT_REGISTRY_ID[AssemblerAgent])
-            try:
-                asm_result = await assembler.execute(
-                    session_id,
-                    {"outputs": all_outputs, "review": review_result},
-                )
-                await self._write_audit(
-                    session_id=session_id,
-                    task_id="assembly",
-                    agent_name="AssemblerAgent",
-                    skill_tag="assembly",
-                    output=asm_result,
-                )
-            finally:
-                agent_registry.mark_idle(AGENT_REGISTRY_ID[AssemblerAgent])
+                # ── Final Assembly ─────────────────────────────────────────────────
+                assembler = AssemblerAgent(self.gemini, self.memory, use_openrouter=self.use_openrouter)
+                print(f"🏗️ [ORCHESTRATOR] Agent 'AssemblerAgent' initialized/started for final assembly")
+                # Mark assembler busy in registry
+                agent_registry.mark_busy(AGENT_REGISTRY_ID[AssemblerAgent])
+                try:
+                    asm_result = await assembler.execute(
+                        session_id,
+                        {"outputs": all_outputs, "review": review_result},
+                    )
+                    await self._write_audit(
+                        session_id=session_id,
+                        task_id="assembly",
+                        agent_name="AssemblerAgent",
+                        skill_tag="assembly",
+                        output=asm_result,
+                    )
+                finally:
+                    agent_registry.mark_idle(AGENT_REGISTRY_ID[AssemblerAgent])
+        finally:
+            stop_event.set()
+            await eta_task
 
     # ── Task execution ────────────────────────────────────────────────────────
 
@@ -183,6 +193,7 @@ class Orchestrator:
 
         try:
             agent = AgentClass(self.gemini, self.memory, use_openrouter=self.use_openrouter)
+            print(f"🤖 [ORCHESTRATOR] Agent '{agent_name}' initialized/started for task: {node.task_id}")
             result = await agent.execute(session_id, {
                 "task_id": node.task_id,
                 "description": node.description,
@@ -221,6 +232,27 @@ class Orchestrator:
             # Always return agent to idle — even on failure
             if registry_id:
                 agent_registry.mark_idle(registry_id)
+
+    async def _log_eta_periodically(self, session_id: str, graph: TaskGraph, stop_event: asyncio.Event):
+        """Logs the expected time of completion every 2 minutes."""
+        interval = 120  # 2 minutes
+        while not stop_event.is_set():
+            try:
+                # Simple heuristic for ETA: remaining tasks * avg time (e.g. 30s per task)
+                remaining_tasks = [t for t in graph.nodes.values() if t.status not in ["done", "failed"]]
+                # Assume an average of 60 seconds per remaining task for better estimation
+                eta_minutes = len(remaining_tasks) * 1.0 
+                
+                print(f"⏳ [MONITOR] Session {session_id}: {len(remaining_tasks)} tasks remaining. Estimated time to completion: {eta_minutes:.1f} minutes.")
+                
+                # Wait for interval or stop event
+                await asyncio.wait([asyncio.create_task(asyncio.sleep(interval))], return_when=asyncio.FIRST_COMPLETED)
+            except Exception as e:
+                print(f"⚠️ [MONITOR] Error in ETA logger: {e}")
+                break
+            
+            if stop_event.is_set():
+                break
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
