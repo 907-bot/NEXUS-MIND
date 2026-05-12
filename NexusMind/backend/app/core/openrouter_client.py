@@ -29,7 +29,7 @@ class OpenRouterClient:
     
     # Per-agent model assignments (free models)
     AGENT_MODELS = {
-        "PlannerAgent": "qwen/qwen3-coder:free", # Qwen is better at JSON
+        "PlannerAgent": "google/gemma-4-31b-it:free", # Gemma 4 is stable
         "BackendAgent": "qwen/qwen3-coder:free",
         "FrontendAgent": "qwen/qwen3-coder:free",
         
@@ -218,7 +218,7 @@ class OpenRouterClient:
                         f"{self.BASE_URL}/chat/completions",
                         headers=self.headers,
                         json=payload,
-                        timeout=aiohttp.ClientTimeout(total=90),
+                        timeout=aiohttp.ClientTimeout(total=120),
                     ) as response:
                         if response.status == 429:
                             await asyncio.sleep(2 ** attempt)
@@ -267,7 +267,7 @@ class OpenRouterClient:
                         
             except json.JSONDecodeError as e:
                 print(f"⚠️ [OpenRouter] JSON parse failed on attempt {attempt+1}: {e}")
-                print(f"📄 RAW TEXT: {text[:500]}...")
+                print(f"📄 RAW TEXT (Attempt {attempt+1}):\n{text}\n")
                 if attempt == 2:
                     snippet = text[:100] + "..." if len(text) > 100 else text
                     raise RuntimeError(f"JSON generation failed. Raw snippet: {snippet}. Error: {e}")
