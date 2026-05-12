@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
     # App
     APP_ENV: str = "development"
-    CORS_ORIGINS: List[str] = ["*"]
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:3001"]
     ENABLE_AUTH: bool = True
 
     model_config = {

@@ -21,7 +21,7 @@ services:
       - key: CLERK_JWT_ISSUER
         sync: false
       - key: CORS_ORIGINS
-        value: "https://907-bot.github.io,https://907-bot.github.io/NEXUS-MIND,https://907-bot.github.io/NEXUS-MIND/"
+        value: "https://907-bot.github.io"
 
   # Key Value service REDIS_URL already created manually in Render dashboard
 
