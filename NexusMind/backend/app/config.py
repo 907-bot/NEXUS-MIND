@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # App
     APP_ENV: str = "development"
     CORS_ORIGINS: List[str] = ["*"]
+    ENABLE_AUTH: bool = True
 
     model_config = {
         "env_file": ".env",

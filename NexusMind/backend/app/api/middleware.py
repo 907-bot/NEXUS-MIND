@@ -28,6 +28,10 @@ async def verify_token(token: str) -> dict:
     Validate a Clerk-issued JWT and return the user payload.
     Raises HTTPException 401 on any failure.
     """
+    if not settings.ENABLE_AUTH:
+        # Emergency bypass enabled via config
+        return {"user_id": "bypass_user", "email": "bypass@nexusmind.ai"}
+
     if not token:
         raise HTTPException(status_code=401, detail="Missing token")
     if token == "mock_token":

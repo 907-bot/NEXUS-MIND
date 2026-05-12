@@ -40,6 +40,8 @@ async def lifespan(app: FastAPI):
     await memory_store.connect()
     
     print("🎯 [MAIN] Authentication Configuration:")
+    auth_status = "✅ Active (Clerk)" if settings.ENABLE_AUTH else "⚠️ BYPASSED (No Auth)"
+    print(f"     - Authentication: {auth_status}")
     print(f"     - Clerk JWT Issuer: {'✅ Set' if settings.CLERK_JWT_ISSUER else '❌ Not Set'}")
     
     print("🎯 [MAIN] LLM Configuration:")
