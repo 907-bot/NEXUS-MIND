@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Force rebuild - v1.0.1
 const nextConfig = {
   output: "export",
   trailingSlash: true,
