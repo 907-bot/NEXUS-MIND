@@ -118,7 +118,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 -z-20">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0c]/50 to-[#0a0a0c]" />
           <img 
-            src="/hero-bg.png" 
+            src="hero-bg.png" 
             alt="NexusMind Hero" 
             className="w-full h-full object-cover opacity-40 scale-105 animate-[pulse_8s_infinite]"
           />

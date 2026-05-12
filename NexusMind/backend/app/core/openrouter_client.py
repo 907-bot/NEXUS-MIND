@@ -29,10 +29,7 @@ class OpenRouterClient:
     
     # Per-agent model assignments (free models)
     AGENT_MODELS = {
-        # Tier 1: Keep on Gemini (Planner, critical orchestration)
-        "PlannerAgent": None,  # Uses Gemini
-        
-        # Tier 2: Code specialists (Qwen3 Coder)
+        "PlannerAgent": "google/gemini-2.0-flash-exp:free", # Use Gemini 2.0 Free via OpenRouter
         "BackendAgent": "qwen/qwen3-coder:free",
         "FrontendAgent": "qwen/qwen3-coder:free",
         

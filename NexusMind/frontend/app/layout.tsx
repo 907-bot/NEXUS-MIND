@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata = {
   title: "NexusMind - Autonomous AI Network",
   description: "Next-generation multi-agent swarm intelligence",
+  icons: {
+    icon: "favicon.ico",
+  },
 };
 
 export default function RootLayout({

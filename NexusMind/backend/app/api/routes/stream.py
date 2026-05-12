@@ -66,4 +66,11 @@ async def stream_session(
         finally:
             await pubsub.unsubscribe()
 
-    return EventSourceResponse(event_generator())
+    return EventSourceResponse(
+        event_generator(),
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Prevents Nginx/Render from buffering SSE
+        }
+    )

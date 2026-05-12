@@ -98,6 +98,9 @@ async def run_nexusmind_pipeline(session_id: str, goal: str, user_id: str):
             await db.commit()
 
     except Exception as e:
+        print(f"❌ [PIPELINE ERROR] Session {session_id} failed: {e}")
+        import traceback
+        traceback.print_exc()
         await memory_store.set_status(session_id, "failed")
         await memory_store.publish_event(session_id, {
             "agent": "System",

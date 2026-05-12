@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { AgentEvent } from "@/lib/types";
+import { buildStreamUrl } from "@/lib/api";
 
 interface StreamConsumerProps {
   sessionId: string;
@@ -33,9 +34,14 @@ export default function StreamConsumer({
     // Close any existing connection first
     esRef.current?.close();
 
-    const url = `${process.env.NEXT_PUBLIC_API_URL}/api/stream/${sessionId}?token=${encodeURIComponent(token)}`;
+    const url = buildStreamUrl(sessionId, token);
+    console.log("🔌 Connecting to stream:", url);
     const es = new EventSource(url);
     esRef.current = es;
+
+    es.onopen = () => {
+      console.log("✅ Stream connection established");
+    };
 
     es.onmessage = (e: MessageEvent) => {
       let event: AgentEvent;

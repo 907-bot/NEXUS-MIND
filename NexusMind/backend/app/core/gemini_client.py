@@ -114,21 +114,28 @@ class GeminiClient:
 
         for attempt in range(3):
             try:
-                response = await loop.run_in_executor(
-                    None,
-                    lambda: self.model.generate_content(
-                        contents=full_prompt,
-                        generation_config=self.json_config,   # ← native JSON mode
+                print(f"📡 [Gemini] Sending JSON request (attempt {attempt+1})...")
+                response = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        None,
+                        lambda: self.model.generate_content(
+                            contents=full_prompt,
+                            generation_config=self.json_config,
+                        ),
                     ),
+                    timeout=30.0  # 30 second timeout
                 )
                 self._record_usage(response)
                 text = response.text
+                print(f"📩 [Gemini] Received response ({len(text)} chars)")
                 text = re.sub(r"```json|```", "", text).strip()
                 return json.loads(text)
-            except json.JSONDecodeError:
-                # Native JSON mode should prevent this, but handle gracefully
+            except asyncio.TimeoutError:
+                print(f"⚠️ [Gemini] Request timed out on attempt {attempt+1}")
                 if attempt == 2:
                     raise
+            except json.JSONDecodeError:
+                print(f"⚠️ [Gemini] Failed to parse JSON on attempt {attempt+1}")
             except Exception as exc:
                 if "ResourceExhausted" in type(exc).__name__ or "429" in str(exc):
                     await asyncio.sleep(2 ** attempt)
