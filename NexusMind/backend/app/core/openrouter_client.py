@@ -6,6 +6,7 @@ import os
 import json
 import re
 import asyncio
+import random
 import ssl
 from typing import Optional
 import aiohttp
@@ -29,7 +30,7 @@ class OpenRouterClient:
     
     # Per-agent model assignments (free models)
     AGENT_MODELS = {
-        "PlannerAgent": "google/gemma-4-31b-it:free", # Gemma 4 is stable
+        "PlannerAgent": "meta-llama/llama-3.3-70b-instruct:free", # Stable generalist
         "BackendAgent": "qwen/qwen3-coder:free",
         "FrontendAgent": "qwen/qwen3-coder:free",
         
@@ -210,6 +211,9 @@ class OpenRouterClient:
             "max_tokens": self.max_tokens,
         }
         
+        # Add a small random jitter to avoid clashing with other agents' requests
+        await asyncio.sleep(random.uniform(1.0, 3.0))
+        
         for attempt in range(3):
             try:
                 connector = aiohttp.TCPConnector(ssl=SSL_CONTEXT) if SSL_CONTEXT else None
@@ -284,7 +288,7 @@ class OpenRouterClient:
                     continue
                 raise RuntimeError(f"OpenRouter JSON generation failed: {e}")
         
-        raise RuntimeError("JSON generation failed after retries")
+        raise RuntimeError("OpenRouter failed after 3 attempts. This is usually due to Rate Limits (429) on free models. Try again in 30 seconds.")
     
     async def generate_with_tools(
         self,
