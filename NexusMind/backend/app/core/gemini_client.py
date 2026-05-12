@@ -261,5 +261,10 @@ class GeminiClient:
         return fallback.text, tool_call_log
 
 
-# Singleton
-gemini = GeminiClient()
+# Singleton — fail-safe: a broken/missing Gemini API key should NOT crash startup
+# since all agents now route through OpenRouter.
+try:
+    gemini = GeminiClient()
+except Exception as _gemini_err:
+    print(f"⚠️  [Gemini] Client init failed (will use OpenRouter for all agents): {_gemini_err}")
+    gemini = None  # type: ignore

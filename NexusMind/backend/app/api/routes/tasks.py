@@ -48,8 +48,8 @@ async def run_nexusmind_pipeline(session_id: str, goal: str, user_id: str):
             db.add(db_session)
             await db.commit()
 
-        # Step 1: Decompose Goal into Task Graph (Planner always uses Gemini)
-        planner = PlannerAgent(gemini, memory_store, use_openrouter=False)
+        # Step 1: Decompose Goal into Task Graph (Planner uses OpenRouter free model)
+        planner = PlannerAgent(gemini, memory_store, use_openrouter=True)
         print(f"🎯 [PIPELINE] PlannerAgent initialized for session {session_id}")
         result = await planner.execute(session_id, {"goal": goal})
         task_graph = result.get("task_graph", [])

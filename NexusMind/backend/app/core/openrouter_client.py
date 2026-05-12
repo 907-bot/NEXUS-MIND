@@ -383,17 +383,14 @@ class OpenRouterClient:
 def create_llm_client(agent_name: str, **kwargs):
     """
     Factory to create appropriate LLM client for an agent.
-    Returns GeminiClient for Planner, OpenRouterClient for others.
+    ALL agents use OpenRouter free models (Gemini direct API is not used).
+    PlannerAgent uses google/gemini-2.0-flash-exp:free via OpenRouter.
     """
-    from app.core.gemini_client import GeminiClient, gemini
-    
-    # PlannerAgent always uses Gemini
-    if agent_name == "PlannerAgent":
-        return gemini
-    
-    # Check if we have OpenRouter key
     if settings.OPENROUTER_API_KEY:
         return OpenRouterClient(agent_name=agent_name, **kwargs)
     
-    # Fallback to Gemini if no OpenRouter key
-    return gemini
+    # Hard error — no OpenRouter key means nothing will work
+    raise RuntimeError(
+        "OPENROUTER_API_KEY is not set. All agents require OpenRouter. "
+        "Set this environment variable in your Render dashboard."
+    )
