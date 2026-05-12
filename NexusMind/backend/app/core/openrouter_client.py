@@ -29,7 +29,7 @@ class OpenRouterClient:
     
     # Per-agent model assignments (free models)
     AGENT_MODELS = {
-        "PlannerAgent": "google/gemini-2.0-flash-exp:free", # Use Gemini 2.0 Free via OpenRouter
+        "PlannerAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "BackendAgent": "qwen/qwen3-coder:free",
         "FrontendAgent": "qwen/qwen3-coder:free",
         
@@ -41,8 +41,8 @@ class OpenRouterClient:
         "DevOpsAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "ContentAgent": "meta-llama/llama-3.3-70b-instruct:free",
         
-        # Tier 5: Reasoning / QA (DeepSeek R1 free)
-        "CriticAgent": "deepseek/deepseek-r1:free",
+        # Tier 5: Reasoning / QA (GPT-OSS 120B)
+        "CriticAgent": "openai/gpt-oss-120b:free",
         
         # Tier 6: Complex aggregation (Llama 3.3 70B fallback for assembly)
         "AssemblerAgent": "meta-llama/llama-3.3-70b-instruct:free",
