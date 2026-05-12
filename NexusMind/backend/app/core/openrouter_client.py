@@ -30,7 +30,7 @@ class OpenRouterClient:
     
     # Per-agent model assignments (free models)
     AGENT_MODELS = {
-        "PlannerAgent": "meta-llama/llama-3.3-70b-instruct:free", # Stable generalist
+        "PlannerAgent": "qwen/qwen3-coder:free", # Back to high-precision Qwen for planning
         "BackendAgent": "qwen/qwen3-coder:free",
         "FrontendAgent": "qwen/qwen3-coder:free",
         
@@ -231,6 +231,19 @@ class OpenRouterClient:
                         response.raise_for_status()
                         data = await response.json()
                         
+                        # Handle OpenRouter error responses (sometimes sent with 200 OK)
+                        if "error" in data:
+                            err_info = data.get("error", {})
+                            err_msg = err_info.get("message", "Unknown error")
+                            print(f"⚠️ [OpenRouter] API Error: {err_msg}")
+                            await asyncio.sleep(2 ** (attempt + 1))
+                            continue
+                            
+                        if "choices" not in data or not data["choices"]:
+                            print(f"⚠️ [OpenRouter] No choices returned: {data}")
+                            await asyncio.sleep(2 ** (attempt + 1))
+                            continue
+
                         # Record usage
                         usage = data.get("usage", {})
                         self._record_usage(usage)
