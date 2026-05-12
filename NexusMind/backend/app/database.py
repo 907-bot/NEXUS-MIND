@@ -43,10 +43,13 @@ async def init_db():
         # Self-healing migration for existing databases
         try:
             from sqlalchemy import text
+            print("🛠️ [DB] Running migrations...")
             # Fix sessions table
             await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"))
             # Fix tasks table
             await conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS output JSON;"))
             await conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP;"))
-        except Exception:
-            pass # Columns likely exist or non-postgres DB
+            print("✅ [DB] Migrations applied successfully")
+        except Exception as e:
+            print(f"⚠️ [DB] Migration note: {e}")
+            pass 
