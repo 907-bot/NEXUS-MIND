@@ -43,7 +43,6 @@ async def lifespan(app: FastAPI):
     print(f"     - Clerk JWT Issuer: {'✅ Set' if settings.CLERK_JWT_ISSUER else '❌ Not Set'}")
     
     print("🎯 [MAIN] LLM Configuration:")
-    from app.config import settings
     print(f"     - Gemini API Key: {'✅ Set' if settings.GEMINI_API_KEY else '❌ Not Set'}")
     print(f"     - OpenRouter API Key: {'✅ Set' if settings.OPENROUTER_API_KEY else '❌ Not Set'}")
     
