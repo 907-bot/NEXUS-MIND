@@ -234,21 +234,42 @@ class OpenRouterClient:
                         text = data["choices"][0]["message"]["content"]
                         
                         # Strip markdown code fences (```json ... ``` or ``` ... ```)
-                        text = re.sub(r"```(?:json)?\s*", "", text).strip()
-                        text = text.strip("`").strip()
+                        # We use a non-greedy match to find the content between fences if they exist
+                        fence_match = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL)
+                        if fence_match:
+                            text = fence_match.group(1).strip()
+                        else:
+                            # Fallback: strip any remaining backticks and whitespace
+                            text = text.strip().strip("`").strip()
                         
-                        # Extract first JSON object/array if model added extra prose
-                        match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
-                        if match:
-                            text = match.group(1)
+                        # Find the first { or [ and the last } or ]
+                        # This is very robust against leading/trailing prose
+                        start_idx = -1
+                        for i, char in enumerate(text):
+                            if char in ('{', '['):
+                                start_idx = i
+                                break
+                        
+                        if start_idx != -1:
+                            end_char = '}' if text[start_idx] == '{' else ']'
+                            end_idx = text.rfind(end_char)
+                            if end_idx != -1:
+                                text = text[start_idx:end_idx+1]
                         
                         print(f"📩 [OpenRouter/{self.model}] JSON response ({len(text)} chars)")
-                        return json.loads(text)
+                        try:
+                            return json.loads(text)
+                        except json.JSONDecodeError:
+                            # One last try: remove any trailing commas before closing braces/brackets
+                            # (Some models output invalid JSON like {"a": 1,})
+                            text = re.sub(r",\s*([\]}])", r"\1", text)
+                            return json.loads(text)
                         
             except json.JSONDecodeError as e:
                 print(f"⚠️ [OpenRouter] JSON parse failed on attempt {attempt+1}: {e}")
+                print(f"📄 RAW TEXT: {text[:500]}...")
                 if attempt == 2:
-                    raise RuntimeError(f"OpenRouter JSON generation failed: invalid JSON after retries")
+                    raise RuntimeError(f"OpenRouter JSON generation failed: invalid JSON after retries. Error: {e}")
                 await asyncio.sleep(2)
             except aiohttp.ClientResponseError as e:
                 print(f"⚠️ [OpenRouter] HTTP {e.status} on attempt {attempt+1}: {e.message}")

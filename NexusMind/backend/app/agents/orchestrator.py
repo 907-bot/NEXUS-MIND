@@ -193,6 +193,17 @@ class Orchestrator:
 
         try:
             agent = AgentClass(self.gemini, self.memory, use_openrouter=self.use_openrouter)
+            
+            # Emit initialization event for the frontend live output
+            await self.memory.publish_event(session_id, {
+                "agent": agent_name,
+                "type": "AGENT_INITIALIZED",
+                "data": {
+                    "message": f"🤖 Agent **{agent_name}** has been initialized and is starting task: *{node.task_id}*",
+                    "task_id": node.task_id
+                }
+            })
+            
             print(f"🤖 [AGENT] {agent_name} STARTING: {node.task_id}")
             result = await agent.execute(session_id, {
                 "task_id": node.task_id,

@@ -24,7 +24,7 @@ export default function Dashboard() {
   const handleSubmit = async (goal: string) => {
     setIsProcessing(true);
     setEvents([]);
-    setOutput("");
+    setOutput("🚀 **NexusMind Pipeline Initialized**\nConnecting to autonomous agents via secure stream...\n\n");
     setError(null);
     setSessionId(null);
     setStreamToken(null);
@@ -46,10 +46,22 @@ export default function Dashboard() {
   // StreamConsumer callbacks (stable refs via useCallback)
   const handleEvent = useCallback((event: AgentEvent) => {
     setEvents((prev) => [...prev, event]);
+    
+    // Append initialization messages to the output panel for live feedback
+    if (event.type === "AGENT_INITIALIZED") {
+      setOutput((prev) => {
+        const msg = event.data?.message ? `${event.data.message}\n\n` : "";
+        return prev + msg;
+      });
+    }
   }, []);
 
   const handleFinalOutput = useCallback((content: string) => {
-    setOutput(content);
+    setOutput((prev) => {
+      // If we have initialization logs, add a separator
+      const prefix = prev ? "---\n\n" : "";
+      return prev + prefix + "## 🏁 Final Deliverable\n\n" + content;
+    });
   }, []);
 
   const handleDone = useCallback(() => {
