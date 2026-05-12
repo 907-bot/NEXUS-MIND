@@ -167,6 +167,3 @@ class MCPManager:
 
 # Singleton instance
 mcp_manager = MCPManager()
-
-# Singleton instance
-mcp_manager = MCPManager()

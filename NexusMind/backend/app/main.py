@@ -35,6 +35,13 @@ async def lifespan(app: FastAPI):
     await init_db()
     print("✅ [MAIN] Database tables created")
     
+    print("🧠 [MAIN] Connecting to Memory Store (Redis)...")
+    from app.core.memory_store import memory_store
+    await memory_store.connect()
+    
+    print("🎯 [MAIN] Authentication Configuration:")
+    print(f"     - Clerk JWT Issuer: {'✅ Set' if settings.CLERK_JWT_ISSUER else '❌ Not Set'}")
+    
     print("🎯 [MAIN] LLM Configuration:")
     from app.config import settings
     print(f"     - Gemini API Key: {'✅ Set' if settings.GEMINI_API_KEY else '❌ Not Set'}")

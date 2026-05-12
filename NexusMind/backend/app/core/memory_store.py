@@ -5,7 +5,18 @@ from app.config import settings
 
 class MemoryStore:
     def __init__(self):
+        print(f"🔌 [REDIS] Initializing connection to {settings.REDIS_URL.split('@')[-1]}...") # Obfuscate password
         self.redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+
+    async def connect(self):
+        """Verify connection to Redis."""
+        try:
+            await self.redis.ping()
+            print("✅ [REDIS] Connected successfully")
+        except Exception as e:
+            print(f"❌ [REDIS] Connection failed: {str(e)}")
+            # Don't raise here, allow the app to start but subsequent calls will fail
+            # This helps in seeing the app logs even if Redis is down
 
     # ── Shared memory ────────────────────────────────────────────────────────
 
