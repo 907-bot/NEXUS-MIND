@@ -39,3 +39,10 @@ async def init_db():
         # Import models via the package __init__ so all mappers are registered
         import app.models  # noqa: F401 — triggers Session, Task, AgentOutput imports
         await conn.run_sync(Base.metadata.create_all)
+        
+        # Self-healing migration for existing databases
+        try:
+            from sqlalchemy import text
+            await conn.execute(text("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"))
+        except Exception:
+            pass # Column likely exists or non-postgres DB
