@@ -16,7 +16,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
       publishableKey={publishableKey}
-      fallbackRedirectUrl={`${BASE_PATH}/dashboard/`}
+      signInFallbackRedirectUrl={`${BASE_PATH}/dashboard/`}
+      signUpFallbackRedirectUrl={`${BASE_PATH}/dashboard/`}
       afterSignOutUrl={`${BASE_PATH}/`}
     >
       {children}
