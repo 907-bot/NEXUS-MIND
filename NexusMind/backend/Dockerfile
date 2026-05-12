@@ -11,7 +11,7 @@ COPY . .
 
 # Set environment variables
 ENV PYTHONPATH=/app
-ENV PORT=8000
+ENV PYTHONUNBUFFERED=1
 
-# Start application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start application using shell form to expand $PORT
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
