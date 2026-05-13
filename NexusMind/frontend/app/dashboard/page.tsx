@@ -46,13 +46,20 @@ export default function Dashboard() {
   // StreamConsumer callbacks (stable refs via useCallback)
   const handleEvent = useCallback((event: AgentEvent) => {
     setEvents((prev) => [...prev, event]);
-    
-    // Append initialization messages to the output panel for live feedback
-    if (event.type === "AGENT_INITIALIZED") {
-      setOutput((prev) => {
-        const msg = event.data?.message ? `${event.data.message}\n\n` : "";
-        return prev + msg;
-      });
+
+    // Live backend / model lines in the output panel (markdown)
+    if (event.type === "BACKEND_LOG" || event.type === "AGENT_INITIALIZED") {
+      const msg = event.data?.message ? `${event.data.message}\n\n` : "";
+      if (msg) {
+        setOutput((prev) => prev + msg);
+      }
+      return;
+    }
+
+    if (event.type === "PLANNING_STARTED" && event.data?.goal) {
+      setOutput((prev) =>
+        prev + `**Planning started** — _${String(event.data.goal)}_\n\n`
+      );
     }
   }, []);
 

@@ -97,7 +97,12 @@ class AssemblerAgent(BaseAgent):
             + "\n\nAssemble all of the above into the final deliverable."
         )
 
-        result = await self.gemini.generate_json(ASSEMBLER_SYSTEM, prompt)
+        result = await self.gemini.generate_json(
+            ASSEMBLER_SYSTEM,
+            prompt,
+            stream_session_id=session_id,
+            stream_memory=self.memory,
+        )
 
         output = {
             "final_content":  result.get("final_content", ""),

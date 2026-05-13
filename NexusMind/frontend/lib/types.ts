@@ -2,6 +2,7 @@
 
 export type AgentEventType =
   | "CONNECTED"
+  | "BACKEND_LOG"
   | "AGENT_INITIALIZED"
   | "PLANNING_STARTED"
   | "PLANNING_COMPLETE"

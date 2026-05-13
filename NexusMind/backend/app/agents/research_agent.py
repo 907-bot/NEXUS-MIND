@@ -83,6 +83,8 @@ class ResearchAgent(BaseAgent):
         result = await self.gemini.generate_json(
             RESEARCH_SYSTEM,
             f"Research topic: {description}{search_context}{scraped_context}{a2a_context}",
+            stream_session_id=session_id,
+            stream_memory=self.memory,
         )
 
         output = {

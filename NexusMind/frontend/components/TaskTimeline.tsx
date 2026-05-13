@@ -3,8 +3,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Clock, PlayCircle, AlertCircle } from "lucide-react";
 
 export default function TaskTimeline({ events }: { events: any[] }) {
-  const relevantEvents = events.filter(e => 
-    ["TASK_STARTED", "TASK_COMPLETE", "TASK_FAILED", "PLANNING_COMPLETE", "REVISION_STARTED", "FINAL_OUTPUT", "ERROR", "PIPELINE_ERROR"].includes(e.type)
+  const relevantEvents = events.filter(e =>
+    [
+      "PLANNING_STARTED",
+      "BACKEND_LOG",
+      "AGENT_INITIALIZED",
+      "TASK_STARTED",
+      "TASK_COMPLETE",
+      "TASK_FAILED",
+      "PLANNING_COMPLETE",
+      "REVISION_STARTED",
+      "FINAL_OUTPUT",
+      "ERROR",
+      "PIPELINE_ERROR",
+    ].includes(e.type)
   );
 
   return (
@@ -22,7 +34,7 @@ export default function TaskTimeline({ events }: { events: any[] }) {
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
               ) : event.type === "ERROR" || event.type === "PIPELINE_ERROR" || event.type === "TASK_FAILED" ? (
                 <AlertCircle className="w-5 h-5 text-red-500" />
-              ) : event.type === "REVISION_STARTED" ? (
+              ) : event.type === "REVISION_STARTED" || event.type === "PLANNING_STARTED" || event.type === "BACKEND_LOG" ? (
                 <Clock className="w-5 h-5 text-yellow-500" />
               ) : (
                 <PlayCircle className="w-5 h-5 text-blue-500 animate-pulse" />

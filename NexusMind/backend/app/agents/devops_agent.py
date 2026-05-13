@@ -45,6 +45,8 @@ class DevOpsAgent(BaseAgent):
         result = await self.gemini.generate_json(
             DEVOPS_SYSTEM,
             f"DevOps task: {description}{infra_context}",
+            stream_session_id=session_id,
+            stream_memory=self.memory,
         )
 
         files = result.get("files", [])

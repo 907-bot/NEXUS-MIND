@@ -76,6 +76,8 @@ class FrontendAgent(BaseAgent):
         result = await self.gemini.generate_json(
             FRONTEND_SYSTEM,
             f"Task: {description}{api_context}{a2a_api_context}",
+            stream_session_id=session_id,
+            stream_memory=self.memory,
         )
 
         files = result.get("files", [])

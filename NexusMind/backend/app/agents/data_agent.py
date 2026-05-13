@@ -96,7 +96,12 @@ class DataAgent(BaseAgent):
                 }
         else:
             # No tools registered yet — pure LLM fallback
-            result = await self.gemini.generate_json(DATA_SYSTEM, user_message)
+            result = await self.gemini.generate_json(
+                DATA_SYSTEM,
+                user_message,
+                stream_session_id=session_id,
+                stream_memory=self.memory,
+            )
             tool_call_log = []
 
         # ── MCP: validate SQL + generate charts ───────────────────────────────
@@ -152,7 +157,10 @@ class DataAgent(BaseAgent):
             )
             try:
                 chart_data = await self.gemini.generate_json(
-                    "You generate chart data as compact JSON. No explanation.", chart_data_prompt
+                    "You generate chart data as compact JSON. No explanation.",
+                    chart_data_prompt,
+                    stream_session_id=session_id,
+                    stream_memory=self.memory,
                 )
                 await self.emit_event(session_id, "TOOL_CALLED", {
                     "task_id": task_id, "tool": "generate_chart", "chart_type": chart_type,

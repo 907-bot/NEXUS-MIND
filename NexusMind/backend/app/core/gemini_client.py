@@ -103,7 +103,7 @@ class GeminiClient:
                     raise
         raise RuntimeError("Gemini rate limit exceeded after retries")
 
-    async def generate_json(self, system_prompt: str, user_message: str) -> dict | list:
+    async def generate_json(self, system_prompt: str, user_message: str, **kwargs) -> dict | list:
         """
         Generate a structured JSON response using Gemini's native JSON mode
         (response_mime_type='application/json') for maximum reliability.

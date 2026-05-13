@@ -25,7 +25,9 @@ class CriticAgent(BaseAgent):
 
         result = await self.gemini.generate_json(
             CRITIC_SYSTEM,
-            f"Review these agent outputs: {outputs}"
+            f"Review these agent outputs: {outputs}",
+            stream_session_id=session_id,
+            stream_memory=self.memory,
         )
 
         output = {

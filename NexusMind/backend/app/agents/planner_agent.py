@@ -25,7 +25,10 @@ class PlannerAgent(BaseAgent):
         await self.emit_event(session_id, "PLANNING_STARTED", {"goal": goal})
 
         task_graph = await self.gemini.generate_json(
-            PLANNER_SYSTEM, f"Goal: {goal}"
+            PLANNER_SYSTEM,
+            f"Goal: {goal}",
+            stream_session_id=session_id,
+            stream_memory=self.memory,
         )
 
         # Validate it's a list

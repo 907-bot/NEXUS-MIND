@@ -2,6 +2,7 @@ import asyncio
 from typing import Dict, List
 from app.core.gemini_client import GeminiClient
 from app.core.memory_store import MemoryStore
+from app.core.openrouter_client import OpenRouterClient
 from app.core.task_graph import TaskGraph, TaskNode
 from app.core.agent_registry import agent_registry
 from app.agents.backend_agent import BackendAgent
@@ -193,15 +194,24 @@ class Orchestrator:
 
         try:
             agent = AgentClass(self.gemini, self.memory, use_openrouter=self.use_openrouter)
-            
+
+            model_id = getattr(agent.gemini, "model", None)
+            model_suffix = ""
+            if isinstance(model_id, str) and model_id and "/" in model_id:
+                label = OpenRouterClient.friendly_model_label(model_id)
+                model_suffix = f" **{label}** (`{model_id}`) is assigned for this task."
+
             # Emit initialization event for the frontend live output
             await self.memory.publish_event(session_id, {
                 "agent": agent_name,
                 "type": "AGENT_INITIALIZED",
                 "data": {
-                    "message": f"🤖 Agent **{agent_name}** has been initialized and is starting task: *{node.task_id}*",
-                    "task_id": node.task_id
-                }
+                    "message": (
+                        f"🤖 Agent **{agent_name}** is starting **{node.task_id}**.{model_suffix}"
+                    ),
+                    "task_id": node.task_id,
+                    "model": model_id if isinstance(model_id, str) else None,
+                },
             })
             
             print(f"🤖 [AGENT] {agent_name} STARTING: {node.task_id}")
