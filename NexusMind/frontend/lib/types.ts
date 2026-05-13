@@ -2,6 +2,7 @@
 
 export type AgentEventType =
   | "CONNECTED"
+  | "AGENT_INITIALIZED"
   | "PLANNING_STARTED"
   | "PLANNING_COMPLETE"
   | "TASK_STARTED"
