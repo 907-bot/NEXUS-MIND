@@ -1,6 +1,37 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Clock, PlayCircle, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, PlayCircle, AlertCircle, Wrench } from "lucide-react";
+
+function timelineSubtitle(event: { type: string; data?: Record<string, unknown> }): string {
+  const d = event.data ?? {};
+  if (event.type === "PLANNING_COMPLETE") {
+    const n = typeof d.task_count === "number" ? d.task_count : Array.isArray(d.tasks) ? d.tasks.length : 0;
+    const tasks = d.tasks as { task_id?: string }[] | undefined;
+    if (Array.isArray(tasks) && tasks.length) {
+      const ids = tasks.slice(0, 4).map((t) => t.task_id).filter(Boolean).join(", ");
+      const more = tasks.length > 4 ? ` +${tasks.length - 4} more` : "";
+      return `${n} tasks planned: ${ids}${more}`;
+    }
+    return `${n} tasks planned`;
+  }
+  if (event.type === "TOOL_CALLED") {
+    const tool = String(d.tool ?? "");
+    const q = d.query ? String(d.query).slice(0, 60) : d.filename ? String(d.filename) : "";
+    return q ? `${tool}: ${q}${String(q).length >= 60 ? "…" : ""}` : tool || "Tool call";
+  }
+  if (event.type === "BACKEND_LOG") {
+    if (d.phase === "eta_update") {
+      const eta = d.eta_minutes != null ? `~${d.eta_minutes} min` : "";
+      const rem = d.tasks_remaining != null ? `${d.tasks_remaining} left` : "";
+      return [eta, rem].filter(Boolean).join(" · ") || String(d.message ?? "ETA update");
+    }
+    const m = String(d.message ?? "");
+    return m.length > 220 ? `${m.slice(0, 220)}…` : m || "Log";
+  }
+  return (
+    String(d.description ?? d.summary ?? d.message ?? d.goal ?? "") || "Processing…"
+  );
+}
 
 export default function TaskTimeline({ events }: { events: any[] }) {
   const relevantEvents = events.filter(e =>
@@ -12,6 +43,10 @@ export default function TaskTimeline({ events }: { events: any[] }) {
       "TASK_COMPLETE",
       "TASK_FAILED",
       "PLANNING_COMPLETE",
+      "TOOL_CALLED",
+      "REVIEW_STARTED",
+      "REVIEW_COMPLETE",
+      "ASSEMBLY_STARTED",
       "REVISION_STARTED",
       "FINAL_OUTPUT",
       "ERROR",
@@ -30,23 +65,25 @@ export default function TaskTimeline({ events }: { events: any[] }) {
             className="flex gap-3 items-start"
           >
             <div className="mt-1">
-              {event.type === "TASK_COMPLETE" || event.type === "PLANNING_COMPLETE" || event.type === "FINAL_OUTPUT" ? (
+              {event.type === "TASK_COMPLETE" || event.type === "PLANNING_COMPLETE" || event.type === "FINAL_OUTPUT" || event.type === "REVIEW_COMPLETE" ? (
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
               ) : event.type === "ERROR" || event.type === "PIPELINE_ERROR" || event.type === "TASK_FAILED" ? (
                 <AlertCircle className="w-5 h-5 text-red-500" />
               ) : event.type === "REVISION_STARTED" || event.type === "PLANNING_STARTED" || event.type === "BACKEND_LOG" ? (
                 <Clock className="w-5 h-5 text-yellow-500" />
+              ) : event.type === "TOOL_CALLED" ? (
+                <Wrench className="w-5 h-5 text-cyan-500/90" />
               ) : (
                 <PlayCircle className="w-5 h-5 text-blue-500 animate-pulse" />
               )}
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-200">
                 <span className="text-purple-400 font-bold">[{event.agent}]</span>{" "}
                 {event.type.replace(/_/g, " ")}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {event.data?.description || event.data?.summary || event.data?.message || "Processing..."}
+              <p className="text-xs text-gray-500 mt-0.5 break-words">
+                {timelineSubtitle(event)}
               </p>
             </div>
           </motion.div>

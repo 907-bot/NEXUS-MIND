@@ -399,10 +399,12 @@ class OpenRouterClient:
                             usage = data.get("usage", {})
                             self._record_usage(usage)
 
-                            text = data["choices"][0]["message"]["content"]
+                            raw_content = data["choices"][0]["message"]["content"]
+                            text = raw_content
 
+                            # Any ```lang ... ``` fence (models often use ```bash, ```text, etc.)
                             fence_match = re.search(
-                                r"```(?:json)?\s*(.*?)```", text, re.DOTALL
+                                r"```[\w+-]*\s*(.*?)```", text, re.DOTALL
                             )
                             if fence_match:
                                 text = fence_match.group(1).strip()
@@ -421,8 +423,38 @@ class OpenRouterClient:
                                 if end_idx != -1:
                                     text = text[start_idx : end_idx + 1]
 
+                            if start_idx == -1 or not text.strip():
+                                preview = (raw_content or "")[:180].replace("\n", " ")
+                                await self._emit_backend_log_stream(
+                                    stream_memory,
+                                    stream_session_id,
+                                    "Model returned **non-JSON** (e.g. prose or a shell block). Retrying with another attempt…",
+                                    phase="json_retry_non_object",
+                                    preview=preview + ("…" if len(raw_content or "") > 180 else ""),
+                                )
+                                print(
+                                    f"⚠️ [OpenRouter] No JSON object/array in response; retrying. Preview: {preview}"
+                                )
+                                model_idx = (model_idx + 1) % len(candidates)
+                                await asyncio.sleep(
+                                    float(min(2 + (attempt % 4), 12))
+                                )
+                                continue
+
                             print(
                                 f"📩 [OpenRouter/{self.model}] JSON response ({len(text)} chars)"
+                            )
+                            await self._emit_backend_log_stream(
+                                stream_memory,
+                                stream_session_id,
+                                (
+                                    f"📩 **[OpenRouter]** `{self.model}` — received **{len(raw_content)}** chars, "
+                                    f"extracted JSON candidate **{len(text)}** chars; parsing…"
+                                ),
+                                phase="openrouter_json_received",
+                                model=self.model,
+                                raw_chars=len(raw_content),
+                                json_candidate_chars=len(text),
                             )
                             try:
                                 return json.loads(text)
@@ -431,8 +463,24 @@ class OpenRouterClient:
                                 return json.loads(text)
 
                 except json.JSONDecodeError as e:
+                    preview = (text if isinstance(text, str) else "").replace("\n", " ").strip()
+                    if len(preview) > 320:
+                        preview = preview[:320] + "…"
                     print(f"⚠️ [OpenRouter] JSON parse failed on attempt {attempt+1}: {e}")
                     print(f"📄 RAW TEXT (Attempt {attempt+1}):\n{text}\n")
+                    await self._emit_backend_log_stream(
+                        stream_memory,
+                        stream_session_id,
+                        (
+                            f"⚠️ **[OpenRouter]** `{self.model}` — JSON parse failed "
+                            f"(attempt **{attempt + 1}/{max_attempts}**): `{str(e)}`. Retrying…\n\n"
+                            f"📄 **Raw preview:**\n```\n{preview}\n```"
+                        ),
+                        phase="openrouter_json_parse_failed",
+                        model=self.model,
+                        attempt=attempt + 1,
+                        error=str(e),
+                    )
                     if attempt >= max_attempts - 1:
                         snippet = text[:100] + "..." if len(text) > 100 else text
                         raise RuntimeError(

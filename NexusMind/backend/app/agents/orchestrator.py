@@ -15,6 +15,7 @@ from app.agents.critic_agent import CriticAgent
 from app.agents.assembler_agent import AssemblerAgent
 from app.database import AsyncSessionLocal
 from app.models.agent_output import AgentOutput
+import time
 import uuid
 
 SKILL_TO_AGENT = {
@@ -46,6 +47,36 @@ class Orchestrator:
         self.memory = memory
         self.use_openrouter = use_openrouter
         print(f"🎭 [Orchestrator] Initialized (OpenRouter: {'✅ Enabled' if use_openrouter else '❌ Disabled'})")
+
+    async def _publish_eta(self, session_id: str, graph: TaskGraph) -> None:
+        """Publish remaining-task estimate to SSE (shown in the frontend output panel)."""
+        remaining = [
+            n for n in graph.nodes.values() if n.status not in ("done", "failed")
+        ]
+        n = len(remaining)
+        eta_minutes = n * 1.0
+        msg = (
+            f"⏳ **[MONITOR]** `{session_id[:8]}…` — **{n}** tasks remaining. "
+            f"**Estimated time to completion:** **{eta_minutes:.1f}** minutes."
+        )
+        await self.memory.publish_event(
+            session_id,
+            {
+                "agent": "System",
+                "type": "BACKEND_LOG",
+                "timestamp": time.time(),
+                "data": {
+                    "message": msg,
+                    "phase": "eta_update",
+                    "tasks_remaining": n,
+                    "eta_minutes": round(eta_minutes, 1),
+                },
+            },
+        )
+        print(
+            f"⏳ [MONITOR] Session {session_id}: {n} tasks remaining. "
+            f"Estimated time to completion: {eta_minutes:.1f} minutes."
+        )
 
     async def run(self, session_id: str, task_list: List[dict]):
         """
@@ -248,6 +279,7 @@ class Orchestrator:
                     "summary": result.get("summary", ""),
                 },
             })
+            await self._publish_eta(session_id, graph)
 
         except Exception as exc:
             graph.mark_failed(node.task_id)
@@ -262,23 +294,20 @@ class Orchestrator:
                 agent_registry.mark_idle(registry_id)
 
     async def _log_eta_periodically(self, session_id: str, graph: TaskGraph, stop_event: asyncio.Event):
-        """Logs the expected time of completion every 2 minutes."""
+        """Publish ETA to the stream every 2 minutes while the graph is executing."""
         interval = 120  # 2 minutes
         while not stop_event.is_set():
             try:
-                # Simple heuristic for ETA: remaining tasks * avg time (e.g. 30s per task)
-                remaining_tasks = [t for t in graph.nodes.values() if t.status not in ["done", "failed"]]
-                # Assume an average of 60 seconds per remaining task for better estimation
-                eta_minutes = len(remaining_tasks) * 1.0 
-                
-                print(f"⏳ [MONITOR] Session {session_id}: {len(remaining_tasks)} tasks remaining. Estimated time to completion: {eta_minutes:.1f} minutes.")
-                
-                # Wait for interval or stop event
-                await asyncio.wait([asyncio.create_task(asyncio.sleep(interval))], return_when=asyncio.FIRST_COMPLETED)
+                await self._publish_eta(session_id, graph)
             except Exception as e:
                 print(f"⚠️ [MONITOR] Error in ETA logger: {e}")
                 break
-            
+
+            try:
+                await asyncio.wait_for(stop_event.wait(), timeout=interval)
+            except asyncio.TimeoutError:
+                pass
+
             if stop_event.is_set():
                 break
 

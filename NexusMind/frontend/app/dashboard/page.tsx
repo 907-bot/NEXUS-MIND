@@ -10,6 +10,11 @@ import StreamConsumer from "@/components/StreamConsumer";
 import AuthButtons from "@/components/AuthButtons";
 import { submitGoal } from "@/lib/api";
 import { AgentEvent } from "@/lib/types";
+import {
+  formatPlanningComplete,
+  formatTaskStarted,
+  formatToolCalled,
+} from "@/lib/format-agent-log";
 import { Loader2, Cpu } from "lucide-react";
 
 export default function Dashboard() {
@@ -56,10 +61,88 @@ export default function Dashboard() {
       return;
     }
 
+    if (event.type === "PLANNING_COMPLETE") {
+      setOutput((prev) => prev + formatPlanningComplete(event.data ?? {}));
+      return;
+    }
+
+    if (event.type === "TASK_STARTED") {
+      setOutput((prev) => prev + formatTaskStarted(event.agent, event.data ?? {}));
+      return;
+    }
+
+    if (event.type === "TOOL_CALLED") {
+      setOutput((prev) => prev + formatToolCalled(event.agent, event.data ?? {}));
+      return;
+    }
+
+    if (event.type === "REVIEW_STARTED") {
+      setOutput(
+        (prev) =>
+          prev +
+          `🕵️ **Critic** review started (${event.data?.outputs_count ?? "?"} outputs).\n\n`
+      );
+      return;
+    }
+
+    if (event.type === "REVIEW_COMPLETE") {
+      const score = event.data?.score;
+      const approved = event.data?.approved;
+      setOutput(
+        (prev) =>
+          prev +
+          `🕵️ **Critic** review complete${score != null ? ` — score **${score}**` : ""}${
+            approved != null ? `, approved: **${approved}**` : ""
+          }.\n\n`
+      );
+      return;
+    }
+
+    if (event.type === "ASSEMBLY_STARTED") {
+      const n = event.data?.agent_outputs_count;
+      setOutput(
+        (prev) =>
+          prev +
+          `🏗️ **Assembler** merging outputs${n != null ? ` (**${n}** agent outputs)` : ""}…\n\n`
+      );
+      return;
+    }
+
+    if (event.type === "REVISION_STARTED") {
+      setOutput(
+        (prev) =>
+          prev +
+          `🔁 **Revision cycle** ${event.data?.cycle != null ? `**#${event.data.cycle}**` : ""} — fixing high-severity issues…\n\n`
+      );
+      return;
+    }
+
     if (event.type === "PLANNING_STARTED" && event.data?.goal) {
       setOutput((prev) =>
         prev + `**Planning started** — _${String(event.data.goal)}_\n\n`
       );
+      return;
+    }
+
+    if (event.type === "TASK_COMPLETE") {
+      const tid = String(event.data?.task_id ?? "");
+      const full = event.data?.summary ? String(event.data.summary) : "";
+      const summary =
+        full.length > 400 ? `${full.slice(0, 400)}…` : full;
+      const line = summary
+        ? `✅ **${event.agent}** completed **${tid}** — ${summary}\n\n`
+        : `✅ **${event.agent}** completed **${tid}**.\n\n`;
+      setOutput((prev) => prev + line);
+      return;
+    }
+
+    if (event.type === "TASK_FAILED") {
+      const tid = event.data?.task_id ?? "";
+      const err = event.data?.error ? String(event.data.error).slice(0, 300) : "";
+      setOutput((prev) =>
+        prev + `❌ **${event.agent}** failed **${tid}**${err ? ` — ${err}` : ""}\n\n`
+      );
+      return;
     }
   }, []);
 
