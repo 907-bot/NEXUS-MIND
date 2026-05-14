@@ -22,12 +22,19 @@ class PlannerAgent(BaseAgent):
         goal = task.get("goal", "")
         await self.emit_event(session_id, "PLANNING_STARTED", {"goal": goal})
 
-        plan_data = await self.gemini.generate_json(
-            PLANNER_SYSTEM,
-            f"Goal: {goal}",
-            stream_session_id=session_id,
-            stream_memory=self.memory,
-        )
+        try:
+            plan_data = await self.gemini.generate_json(
+                PLANNER_SYSTEM,
+                f"Goal: {goal}",
+                stream_session_id=session_id,
+                stream_memory=self.memory,
+            )
+        except Exception as e:
+            print(f"⚠️ [PlannerAgent] Plan generation failed: {e}. Using fallback plan.")
+            plan_data = {
+                "brief": f"Fallback Project Plan for: {goal}. Auto-generated due to rate limits.",
+                "next_agent": "ResearchAgent"
+            }
 
         # Validate structure
         brief = plan_data.get("brief", "No brief provided.")
