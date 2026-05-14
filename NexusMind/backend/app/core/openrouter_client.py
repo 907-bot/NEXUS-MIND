@@ -66,9 +66,9 @@ def _friendly_model_label(model_id: str) -> str:
 
 # Extra free models to try when the primary hits HTTP 429 (diversify providers).
 _JSON_MODEL_FALLBACKS: list[str] = [
-    "google/gemini-2.0-flash-lite-preview-02-05:free",
-    "google/gemini-2.0-pro-exp-02-05:free",
     "meta-llama/llama-3.3-70b-instruct:free",
+    "qwen/qwen-2.5-coder-32b-instruct:free",
+    "nousresearch/hermes-3-llama-3.1-405b:free",
 ]
 
 
@@ -82,15 +82,15 @@ class OpenRouterClient:
     
     # Per-agent model assignments (free models)
     AGENT_MODELS = {
-        "PlannerAgent": "google/gemini-2.0-pro-exp-02-05:free", # Fast and smart planning
-        "BackendAgent": "google/gemini-2.0-flash-lite-preview-02-05:free",
-        "FrontendAgent": "google/gemini-2.0-flash-lite-preview-02-05:free",
-        "DataAgent": "google/gemini-2.0-flash-lite-preview-02-05:free",
-        "ResearchAgent": "google/gemini-2.0-flash-lite-preview-02-05:free",
-        "DevOpsAgent": "google/gemini-2.0-flash-lite-preview-02-05:free",
-        "ContentAgent": "google/gemini-2.0-flash-lite-preview-02-05:free",
-        "CriticAgent": "google/gemini-2.0-pro-exp-02-05:free",
-        "AssemblerAgent": "google/gemini-2.0-pro-exp-02-05:free",
+        "PlannerAgent": "meta-llama/llama-3.3-70b-instruct:free", # Fast and smart planning
+        "BackendAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
+        "FrontendAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
+        "DataAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        "ResearchAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        "DevOpsAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
+        "ContentAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        "CriticAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        "AssemblerAgent": "meta-llama/llama-3.3-70b-instruct:free",
     }
 
     _JSON_MAX_ATTEMPTS = 12
