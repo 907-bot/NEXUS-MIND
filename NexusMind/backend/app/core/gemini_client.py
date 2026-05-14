@@ -19,11 +19,11 @@ class GeminiClient:
     def __init__(self, temperature: float = 0.7, max_tokens: int = 4096):
         api_status = "✅ API Key Set" if settings.GEMINI_API_KEY else "❌ No API Key"
         print(f"🔌 [Gemini] Client initialized")
-        print(f"     Model: gemini-1.5-flash")
+        print(f"     Model: gemini-1.5-flash-latest")
         print(f"     Status: {api_status}")
         
         self.model = genai.GenerativeModel(
-            "gemini-1.5-flash",
+            "gemini-1.5-flash-latest",
             safety_settings=SAFETY_SETTINGS,
         )
         self.config = genai.GenerationConfig(
@@ -192,7 +192,7 @@ class GeminiClient:
 
         tool_call_log: list[dict] = []
         model_with_tools = genai.GenerativeModel(
-            "gemini-1.5-flash",
+            "gemini-1.5-flash-latest",
             safety_settings=SAFETY_SETTINGS,
             tools=[Tool(function_declarations=gemini_tools)],
         )
