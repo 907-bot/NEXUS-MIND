@@ -6,6 +6,7 @@ Given a task description, produce high-quality, engaging, and professional conte
 Respond ONLY with valid JSON in this exact format:
 {
   "content": "Full markdown or text content",
+  "next_agent": "AgentName",
   "summary": "Brief description of the content produced",
   "tags": ["tag1", "tag2"]
 }
@@ -37,6 +38,8 @@ class ContentAgent(BaseAgent):
             "task_id": task_id,
             "agent": self.name,
             "content": result.get("content", ""),
+            "next_agent": "AgentName",
+  "next_agent": result.get("next_agent", "AssemblerAgent"),
             "summary": result.get("summary", ""),
             "tags": result.get("tags", []),
         }
@@ -44,7 +47,8 @@ class ContentAgent(BaseAgent):
         await self.store_output(session_id, task_id, output)
         await self.emit_event(session_id, "TASK_COMPLETE", {
             "task_id": task_id,
-            "summary": output["summary"],
+            "next_agent": "AgentName",
+  "summary": output["summary"],
         })
 
         return output

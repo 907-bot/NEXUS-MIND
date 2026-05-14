@@ -67,7 +67,7 @@ def _friendly_model_label(model_id: str) -> str:
 # Extra free models to try when the primary hits HTTP 429 (diversify providers).
 _JSON_MODEL_FALLBACKS: list[str] = [
     "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen/qwen-2.5-coder-32b-instruct:free",
+    "qwen/qwen3-coder:free",
     "nousresearch/hermes-3-llama-3.1-405b:free",
 ]
 
@@ -83,11 +83,11 @@ class OpenRouterClient:
     # Per-agent model assignments (free models)
     AGENT_MODELS = {
         "PlannerAgent": "meta-llama/llama-3.3-70b-instruct:free", # Fast and smart planning
-        "BackendAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
-        "FrontendAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
+        "BackendAgent": "qwen/qwen3-coder:free",
+        "FrontendAgent": "qwen/qwen3-coder:free",
         "DataAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "ResearchAgent": "meta-llama/llama-3.3-70b-instruct:free",
-        "DevOpsAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
+        "DevOpsAgent": "qwen/qwen3-coder:free",
         "ContentAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "CriticAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "AssemblerAgent": "meta-llama/llama-3.3-70b-instruct:free",

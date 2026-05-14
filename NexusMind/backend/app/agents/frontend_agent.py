@@ -9,6 +9,7 @@ Respond ONLY with valid JSON in this exact format:
   "files": [
     {"filename": "components/ComponentName.tsx", "content": "...full code..."}
   ],
+  "next_agent": "AgentName",
   "summary": "Brief description of what was built",
   "dependencies": ["react", "tailwindcss"]
 }
@@ -115,6 +116,8 @@ class FrontendAgent(BaseAgent):
             "task_id": task_id,
             "agent": self.name,
             "files": files,
+            "next_agent": "AgentName",
+  "next_agent": result.get("next_agent", "AssemblerAgent"),
             "summary": result.get("summary", ""),
             "dependencies": result.get("dependencies", []),
             "ts_issues": ts_issues,
@@ -131,7 +134,8 @@ class FrontendAgent(BaseAgent):
 
         await self.emit_event(session_id, "TASK_COMPLETE", {
             "task_id": task_id,
-            "summary": output["summary"],
+            "next_agent": "AgentName",
+  "summary": output["summary"],
             "files_generated": len(files),
         })
 

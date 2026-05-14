@@ -3,6 +3,18 @@
  */
 
 export function formatPlanningComplete(data: Record<string, unknown>): string {
+  const brief = data?.brief as string | undefined;
+  const next_agent = data?.next_agent as string | undefined;
+
+  if (brief) {
+    return (
+      `### Autonomous Swarm Plan Complete\n\n` +
+      `**Project Brief:**\n> ${brief}\n\n` +
+      `**First Agent:** \`${next_agent || "ResearchAgent"}\`\n\n`
+    );
+  }
+
+  // Fallback for old task graph
   const tasks = data?.tasks;
   const count =
     typeof data?.task_count === "number"

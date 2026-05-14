@@ -16,6 +16,7 @@ After all tool calls are complete, respond ONLY with valid JSON:
   "sql_queries":         [{"description": "...", "sql": "SELECT ..."}],
   "validated_code":      [{"description": "...", "code": "...", "output": "..."}],
   "chart_recommendations": ["chart type: description"],
+  "next_agent": "AgentName",
   "summary":             "Executive summary"
 }
 """
@@ -92,7 +93,8 @@ class DataAgent(BaseAgent):
                     "sql_queries": [],
                     "validated_code": [],
                     "chart_recommendations": [],
-                    "summary": raw_text[:200],
+                    "next_agent": "AgentName",
+  "summary": raw_text[:200],
                 }
         else:
             # No tools registered yet — pure LLM fallback
@@ -191,7 +193,8 @@ class DataAgent(BaseAgent):
             "chart_recommendations": result.get("chart_recommendations", []),
             "generated_charts":      generated_charts,
             "tool_calls_made":       len(tool_call_log),
-            "summary":               result.get("summary", ""),
+            "next_agent": "AgentName",
+  "summary":               result.get("summary", ""),
         }
 
         await self.store_output(session_id, task_id, output)
@@ -205,7 +208,8 @@ class DataAgent(BaseAgent):
 
         await self.emit_event(session_id, "TASK_COMPLETE", {
             "task_id":          task_id,
-            "summary":          output["summary"],
+            "next_agent": "AgentName",
+  "summary":          output["summary"],
             "tool_calls_made":  len(tool_call_log),
             "sql_validated":    len(validated_queries),
             "charts_generated": len(generated_charts),

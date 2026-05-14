@@ -9,6 +9,7 @@ Respond ONLY with valid JSON in this exact format:
   "files": [
     {"filename": "path/to/file.py", "content": "...full code..."}
   ],
+  "next_agent": "AgentName",
   "summary": "Brief description of what was built",
   "api_contracts": [
     {
@@ -110,6 +111,8 @@ class BackendAgent(BaseAgent):
             "agent": self.name,
             "files": files,
             "api_contracts": api_contracts,
+            "next_agent": "AgentName",
+  "next_agent": result.get("next_agent", "AssemblerAgent"),
             "summary": result.get("summary", ""),
             "dependencies": result.get("dependencies", []),
             "syntax_issues": syntax_issues,
@@ -131,7 +134,8 @@ class BackendAgent(BaseAgent):
 
         await self.emit_event(session_id, "TASK_COMPLETE", {
             "task_id": task_id,
-            "summary": output["summary"],
+            "next_agent": "AgentName",
+  "summary": output["summary"],
             "files_generated": len(files),
             "api_contracts": len(api_contracts),
             "syntax_issues": len(syntax_issues),

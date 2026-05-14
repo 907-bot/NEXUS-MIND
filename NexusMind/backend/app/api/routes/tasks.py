@@ -64,13 +64,14 @@ async def run_nexusmind_pipeline(session_id: str, goal: str, user_id: str):
             },
         )
         result = await planner.execute(session_id, {"goal": goal})
-        task_graph = result.get("task_graph", [])
+        brief = result.get("brief")
+        next_agent = result.get("next_agent")
 
-        if not task_graph:
+        if not brief:
             await memory_store.publish_event(session_id, {
                 "agent": "System",
                 "type": "ERROR",
-                "data": {"message": "Failed to generate task graph."},
+                "data": {"message": "Failed to generate project brief."},
             })
             await memory_store.set_status(session_id, "failed")
             async with AsyncSessionLocal() as db:
@@ -80,27 +81,11 @@ async def run_nexusmind_pipeline(session_id: str, goal: str, user_id: str):
                     await db.commit()
             return
 
-        # Persist planned tasks to PostgreSQL
-        async with AsyncSessionLocal() as db:
-            for t in task_graph:
-                db_task = Task(
-                    session_id=session_id,
-                    task_id=t["task_id"],
-                    description=t["description"],
-                    skill_tag=t.get("skill_tag", "content"),
-                    status="pending",
-                )
-                db.add(db_task)
-            db_sess = await db.get(Session, session_id)
-            if db_sess:
-                db_sess.status = "executing"
-            await db.commit()
-
-        # Step 2: Execute Graph via Orchestrator
+        # Step 2: Execute Autonomous Swarm via Orchestrator
         await memory_store.set_status(session_id, "executing")
         orchestrator = Orchestrator(gemini, memory_store, use_openrouter=True)
         print(f"🎭 [PIPELINE] Orchestrator initialized for session {session_id}")
-        await orchestrator.run(session_id, task_graph)
+        await orchestrator.run(session_id, {"brief": brief, "starting_agent": next_agent})
 
         await memory_store.set_status(session_id, "completed")
         async with AsyncSessionLocal() as db:

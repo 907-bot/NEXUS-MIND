@@ -9,6 +9,7 @@ Respond ONLY with valid JSON in this exact format:
 {
   "findings": ["key insight 1", "key insight 2", "key insight 3"],
   "sources": ["reference or URL 1", "reference or URL 2"],
+  "next_agent": "AgentName",
   "summary": "2-3 sentence synthesis of the research",
   "recommendations": ["actionable recommendation 1", "actionable recommendation 2"]
 }
@@ -92,6 +93,8 @@ class ResearchAgent(BaseAgent):
             "agent": self.name,
             "findings": result.get("findings", []),
             "sources": result.get("sources", []),
+            "next_agent": "AgentName",
+  "next_agent": result.get("next_agent", "AssemblerAgent"),
             "summary": result.get("summary", ""),
             "recommendations": result.get("recommendations", []),
             "search_results_used": len(search_result.get("results", [])),
@@ -101,7 +104,8 @@ class ResearchAgent(BaseAgent):
         await self.store_output(session_id, task_id, output)
         await self.emit_event(session_id, "TASK_COMPLETE", {
             "task_id": task_id,
-            "summary": output["summary"],
+            "next_agent": "AgentName",
+  "summary": output["summary"],
         })
 
         return output

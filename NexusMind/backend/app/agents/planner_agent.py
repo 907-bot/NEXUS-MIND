@@ -1,18 +1,16 @@
 from app.agents.base_agent import BaseAgent
 
 PLANNER_SYSTEM = """
-You are a master project planner AI. Given a user goal, decompose it into atomic subtasks.
-Output ONLY a JSON array. Do NOT include any markdown formatting, preamble, or postscript.
+You are a master project planner AI. We are using an Autonomous Swarm handoff architecture.
+Given a user goal, output a TOON script (a Project Brief).
+Output ONLY a JSON object. Do NOT include any markdown formatting, preamble, or postscript.
 
-Each task object must have exactly these fields:
-- task_id: unique string (e.g. "task_001")
-- description: clear, actionable instruction for the executing agent
-- skill_tag: exactly one of [backend, frontend, research, data, content, devops, review]
-- depends_on: list of task_ids this task must wait for (empty list if none)
-- priority: integer 1 (high) to 3 (low)
+The JSON object must have exactly these fields:
+- brief: string (A comprehensive summary of the project goals, requirements, and constraints)
+- next_agent: string (The name of the first agent to execute. Choose from: [ResearchAgent, BackendAgent, FrontendAgent, DataAgent, DevOpsAgent, ContentAgent])
 
 Example:
-[{"task_id": "task_001", "description": "...", "skill_tag": "backend", "depends_on": [], "priority": 1}]
+{"brief": "Build a React frontend and FastAPI backend for...", "next_agent": "ResearchAgent"}
 """
 
 
@@ -24,30 +22,30 @@ class PlannerAgent(BaseAgent):
         goal = task.get("goal", "")
         await self.emit_event(session_id, "PLANNING_STARTED", {"goal": goal})
 
-        task_graph = await self.gemini.generate_json(
+        plan_data = await self.gemini.generate_json(
             PLANNER_SYSTEM,
             f"Goal: {goal}",
             stream_session_id=session_id,
             stream_memory=self.memory,
         )
 
-        # Validate it's a list
-        if not isinstance(task_graph, list):
-            task_graph = task_graph.get("tasks", [])
+        # Validate structure
+        brief = plan_data.get("brief", "No brief provided.")
+        next_agent = plan_data.get("next_agent", "ResearchAgent")
 
-        await self.memory.set(session_id, "task_graph", task_graph)
+        await self.memory.set(session_id, "project_brief", brief)
         
         # BOLD LOG for Render Console debugging
         print("\n" + "="*50)
-        print(f"📝 [PLANNER] GENERATED {len(task_graph)} TASKS FOR SESSION {session_id}")
-        for t in task_graph:
-            print(f"  - [{t.get('skill_tag')}] {t.get('task_id')}: {t.get('description')}")
+        print(f"📝 [PLANNER] GENERATED TOON SCRIPT FOR SESSION {session_id}")
+        print(f"  - Brief: {brief[:100]}...")
+        print(f"  - Next Agent: {next_agent}")
         print("="*50 + "\n")
 
         await self.emit_event(
             session_id,
             "PLANNING_COMPLETE",
-            {"task_count": len(task_graph), "tasks": task_graph},
+            {"brief": brief, "next_agent": next_agent},
         )
 
-        return {"task_graph": task_graph}
+        return {"brief": brief, "next_agent": next_agent}
