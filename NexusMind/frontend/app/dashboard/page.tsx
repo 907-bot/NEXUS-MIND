@@ -8,6 +8,7 @@ import OutputPanel from "@/components/OutputPanel";
 import AgentGraph from "@/components/AgentGraph";
 import StreamConsumer from "@/components/StreamConsumer";
 import AuthButtons from "@/components/AuthButtons";
+import FileExplorer, { GeneratedFile } from "@/components/FileExplorer";
 import { submitGoal } from "@/lib/api";
 import { AgentEvent } from "@/lib/types";
 import {
@@ -24,6 +25,7 @@ export default function Dashboard() {
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [thinkingLogs, setThinkingLogs] = useState<string>("");
   const [output, setOutput] = useState<string>("");
+  const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +34,7 @@ export default function Dashboard() {
     setEvents([]);
     setThinkingLogs("🚀 **NexusMind Pipeline Initialized**\nConnecting to autonomous agents via secure stream...\n\n");
     setOutput("");
+    setGeneratedFiles([]);
     setError(null);
     setSessionId(null);
     setStreamToken(null);
@@ -141,6 +144,23 @@ export default function Dashboard() {
       
       // Prevent duplicates and append the new content
       setOutput((prev) => prev.includes(line) ? prev : prev + line + content);
+
+      // Collect generated files
+      if (event.data?.files && Array.isArray(event.data.files)) {
+        setGeneratedFiles((prev) => {
+          const newFiles = [...prev];
+          for (const file of event.data.files) {
+            const existingIndex = newFiles.findIndex(f => f.filename === file.filename);
+            if (existingIndex >= 0) {
+              newFiles[existingIndex] = file;
+            } else {
+              newFiles.push(file);
+            }
+          }
+          return newFiles;
+        });
+      }
+
       return;
     }
 
@@ -220,7 +240,7 @@ export default function Dashboard() {
       {sessionId && (
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           {/* Left panel: Agent Activity + Timeline */}
-          <div className="xl:col-span-4 space-y-6">
+          <div className="xl:col-span-3 space-y-6">
             <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6 backdrop-blur-sm">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
@@ -235,8 +255,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right panel: Output */}
-          <div className="xl:col-span-8 bg-gray-900/50 border border-gray-800 rounded-2xl p-8 backdrop-blur-sm min-h-[600px]">
+          {/* Middle panel: Output */}
+          <div className="xl:col-span-6 bg-gray-900/50 border border-gray-800 rounded-2xl p-8 backdrop-blur-sm min-h-[600px]">
             <h2 className="text-lg font-bold mb-6 flex justify-between items-center">
               Output Deliverable
               {isProcessing && (
@@ -244,6 +264,12 @@ export default function Dashboard() {
               )}
             </h2>
             <OutputPanel content={output} thinkingLogs={thinkingLogs} isProcessing={isProcessing} />
+          </div>
+
+          {/* Right panel: File Explorer */}
+          <div className="xl:col-span-3 bg-gray-900/50 border border-gray-800 rounded-2xl p-6 backdrop-blur-sm min-h-[600px] flex flex-col">
+            <h2 className="text-lg font-bold mb-4">Files Generated</h2>
+            <FileExplorer files={generatedFiles} />
           </div>
         </div>
       )}

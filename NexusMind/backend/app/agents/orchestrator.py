@@ -278,6 +278,7 @@ class Orchestrator:
                     "task_id": node.task_id,
                     "summary": result.get("summary", ""),
                     "content": result.get("content", ""),
+                    "files": result.get("files", []),
                 },
             })
             await self._publish_eta(session_id, graph)

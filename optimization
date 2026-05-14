@@ -1,0 +1,29 @@
+That is a **massive paradigm shift** for the platform, and I absolutely love it. 
+
+You are effectively moving NexusMind from a **Static Orchestrator** (where everything is rigidly planned upfront) to an **Autonomous Swarm** (similar to OpenAI’s Swarm or LangGraph's dynamic routing). 
+
+Here is exactly why combining **TOON** and **Handoffs** is a top-tier architectural move:
+
+### 1. Why Handoffs beat DAGs (Task Graphs)
+* **DAGs can't handle the unknown:** In a Task Graph, the Planner has to guess exactly how the project will unfold before it even starts. If the `ResearchAgent` finds unexpected data, the graph breaks because it was rigidly planned.
+* **Handoffs are dynamic:** With a Handoff architecture, an agent does its job and then *autonomously decides* who needs to work next. For example, the `BackendAgent` writes an API, realizes it needs a database schema, and dynamically says: *"Handing off to DataAgent to design the schema."*
+* **Loops and Retries:** DAGs are "Acyclic" (they can't loop). Handoffs allow natural loops! `CodingAgent` ➔ `CriticAgent` ➔ `CodingAgent` (to fix bugs) ➔ `DevOpsAgent`.
+
+### 2. How TOON + Handoff Works Together
+Instead of the Planner generating a massive, fragile JSON array of dependencies, the new flow becomes incredibly simple and token-efficient:
+
+1. **The TOON Script (The Brief):** The PlannerAgent writes a short, lightweight TOON script that acts as the "Project Brief" (just a list of goals and facts, not a strict execution order). 
+2. **The Baton Pass:** The Planner hands the TOON script to the first logical agent (e.g., the `ResearchAgent`).
+3. **Execution & Handoff:** The `ResearchAgent` reads the TOON script, executes web searches, updates the shared memory, and ends its output with a command: `HANDOFF_TO: BackendAgent`.
+4. **The Loop:** The Orchestrator just acts as a simple router. It sees the handoff command and wakes up the `BackendAgent`. This continues until an agent issues `HANDOFF_TO: AssemblerAgent`.
+
+### 3. Reduced Token Costs & Latency
+Because the Planner no longer has to hallucinate 10 steps into the future using heavy JSON brackets, its generation time will drop from ~15 seconds down to maybe 3 seconds. The agents do the heavy lifting dynamically as the context evolves.
+
+### What do you say?
+If you want to pull the trigger on this, we would:
+1. Delete `task_graph.py` completely.
+2. Rewrite the Orchestrator to just run a `while loop` that reads `next_agent` from the current agent's output.
+3. Update the `BaseAgent` prompt so that every agent is forced to end its turn by selecting the next agent to hand off to.
+
+Let me know if you want to start architecting this!
