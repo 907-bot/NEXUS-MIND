@@ -59,6 +59,18 @@ class TaskGraph:
 
     def mark_failed(self, task_id: str):
         self.nodes[task_id].status = "failed"
+        # Cascade failure so dependent tasks don't get permanently stuck pending
+        for node in self.nodes.values():
+            if node.status == "pending" and task_id in node.depends_on:
+                self.mark_failed(node.task_id)
+        # Cascade failure so dependent tasks don't get permanently stuck pending
+        for node in self.nodes.values():
+            if node.status == "pending" and task_id in node.depends_on:
+                self.mark_failed(node.task_id)
+        # Cascade failure so dependent tasks don't get permanently stuck pending
+        for node in self.nodes.values():
+            if node.status == "pending" and task_id in node.depends_on:
+                self.mark_failed(node.task_id)
 
     def is_complete(self) -> bool:
         return all(n.status in ("done", "failed") for n in self.nodes.values())

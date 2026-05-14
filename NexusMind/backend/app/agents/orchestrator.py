@@ -277,6 +277,7 @@ class Orchestrator:
                 "data": {
                     "task_id": node.task_id,
                     "summary": result.get("summary", ""),
+                    "content": result.get("content", ""),
                 },
             })
             await self._publish_eta(session_id, graph)

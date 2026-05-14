@@ -126,17 +126,24 @@ export default function Dashboard() {
       return;
     }
 
-    if (event.type === "TASK_COMPLETE") {
+        if (event.type === "TASK_COMPLETE") {
       const tid = String(event.data?.task_id ?? "");
       const full = event.data?.summary ? String(event.data.summary) : "";
       const summary =
         full.length > 400 ? `${full.slice(0, 400)}…` : full;
+        
       const line = summary
         ? `✅ **${event.agent}** completed **${tid}** — ${summary}\n\n`
         : `✅ **${event.agent}** completed **${tid}**.\n\n`;
-      setOutput((prev) => prev + line);
+        
+      // Extract the raw artifact content and add a clean separator
+      const content = event.data?.content ? `\n\n${event.data.content}\n\n---\n\n` : "";
+      
+      // Prevent duplicates and append the new content
+      setOutput((prev) => prev.includes(line) ? prev : prev + line + content);
       return;
     }
+
 
     if (event.type === "TASK_FAILED") {
       const tid = event.data?.task_id ?? "";
