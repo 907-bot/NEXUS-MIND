@@ -66,12 +66,11 @@ def _friendly_model_label(model_id: str) -> str:
 
 # Extra free models to try when the primary hits HTTP 429 (diversify providers).
 _JSON_MODEL_FALLBACKS: list[str] = [
-    "google/gemini-2.0-pro-exp-02-05:free",
-    "google/gemini-2.0-flash-lite-preview-02-05:free",
+    "google/gemini-2.0-flash-exp:free",
     "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen/qwen3-coder:free",
-    "nousresearch/hermes-3-llama-3.1-405b:free",
+    "qwen/qwen-2.5-coder-32b-instruct:free",
     "nvidia/llama-3.1-nemotron-70b-instruct:free",
+    "nousresearch/hermes-3-llama-3.1-405b:free",
 ]
 
 
@@ -85,15 +84,15 @@ class OpenRouterClient:
     
     # Per-agent model assignments (free models)
     AGENT_MODELS = {
-        "PlannerAgent": "google/gemini-2.0-pro-exp-02-05:free", # Fast and smart planning
-        "BackendAgent": "qwen/qwen3-coder:free",
-        "FrontendAgent": "qwen/qwen3-coder:free",
+        "PlannerAgent": "google/gemini-2.0-flash-exp:free", # Fast and smart planning
+        "BackendAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
+        "FrontendAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
         "DataAgent": "meta-llama/llama-3.3-70b-instruct:free",
-        "ResearchAgent": "google/gemini-2.0-flash-lite-preview-02-05:free",
-        "DevOpsAgent": "qwen/qwen3-coder:free",
-        "ContentAgent": "google/gemini-2.0-flash-lite-preview-02-05:free",
-        "CriticAgent": "google/gemini-2.0-pro-exp-02-05:free",
-        "AssemblerAgent": "google/gemini-2.0-pro-exp-02-05:free",
+        "ResearchAgent": "google/gemini-2.0-flash-exp:free",
+        "DevOpsAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
+        "ContentAgent": "google/gemini-2.0-flash-exp:free",
+        "CriticAgent": "google/gemini-2.0-flash-exp:free",
+        "AssemblerAgent": "google/gemini-2.0-flash-exp:free",
     }
 
     _JSON_MAX_ATTEMPTS = 12
@@ -127,8 +126,8 @@ class OpenRouterClient:
         elif agent_name and agent_name in self.AGENT_MODELS:
             self.model = self.AGENT_MODELS[agent_name]
         else:
-            # Fallback to Llama 70B if no specific assignment
-            self.model = "google/gemini-2.0-flash-lite-preview-02-05:free"
+            # Fallback if no specific assignment
+            self.model = "google/gemini-2.0-flash-exp:free"
         
         api_status = "✅ API Key Set" if self.api_key else "❌ No API Key"
         print(f"🔌 [OpenRouter] Client initialized for {agent_name or 'Unknown'}")
@@ -336,7 +335,11 @@ class OpenRouterClient:
                                 print(f"⚠️ [OpenRouter] HTTP {response.status} using model {self.model}: {error_text}")
                                 if attempt < max_attempts - 1:
                                     model_idx = (model_idx + 1) % len(candidates)
-                                    await asyncio.sleep(float(min(2 ** (attempt % 6), 60)))
+                                    # If 400 Bad Request, switch models immediately without long delay
+                                    if response.status == 400:
+                                        await asyncio.sleep(0.5)
+                                    else:
+                                        await asyncio.sleep(float(min(2 ** (attempt % 6), 60)))
                                     continue
                                 else:
                                     response.raise_for_status()
