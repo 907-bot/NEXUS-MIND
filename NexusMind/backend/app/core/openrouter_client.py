@@ -66,9 +66,9 @@ def _friendly_model_label(model_id: str) -> str:
 
 # Extra free models to try when the primary hits HTTP 429 (diversify providers).
 _JSON_MODEL_FALLBACKS: list[str] = [
-    "google/gemini-2.0-flash-exp:free",
     "meta-llama/llama-3.3-70b-instruct:free",
     "qwen/qwen-2.5-coder-32b-instruct:free",
+    "google/gemini-2.0-flash-lite-preview-02-05:free",
     "nvidia/llama-3.1-nemotron-70b-instruct:free",
     "nousresearch/hermes-3-llama-3.1-405b:free",
 ]
@@ -84,15 +84,15 @@ class OpenRouterClient:
     
     # Per-agent model assignments (free models)
     AGENT_MODELS = {
-        "PlannerAgent": "google/gemini-2.0-flash-exp:free", # Fast and smart planning
+        "PlannerAgent": "meta-llama/llama-3.3-70b-instruct:free", # Fast and smart planning
         "BackendAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
         "FrontendAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
         "DataAgent": "meta-llama/llama-3.3-70b-instruct:free",
-        "ResearchAgent": "google/gemini-2.0-flash-exp:free",
+        "ResearchAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "DevOpsAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
-        "ContentAgent": "google/gemini-2.0-flash-exp:free",
-        "CriticAgent": "google/gemini-2.0-flash-exp:free",
-        "AssemblerAgent": "google/gemini-2.0-flash-exp:free",
+        "ContentAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        "CriticAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        "AssemblerAgent": "meta-llama/llama-3.3-70b-instruct:free",
     }
 
     _JSON_MAX_ATTEMPTS = 12
@@ -127,7 +127,7 @@ class OpenRouterClient:
             self.model = self.AGENT_MODELS[agent_name]
         else:
             # Fallback if no specific assignment
-            self.model = "google/gemini-2.0-flash-exp:free"
+            self.model = "meta-llama/llama-3.3-70b-instruct:free"
         
         api_status = "✅ API Key Set" if self.api_key else "❌ No API Key"
         print(f"🔌 [OpenRouter] Client initialized for {agent_name or 'Unknown'}")
@@ -335,8 +335,8 @@ class OpenRouterClient:
                                 print(f"⚠️ [OpenRouter] HTTP {response.status} using model {self.model}: {error_text}")
                                 if attempt < max_attempts - 1:
                                     model_idx = (model_idx + 1) % len(candidates)
-                                    # If 400 Bad Request, switch models immediately without long delay
-                                    if response.status == 400:
+                                    # If 400 Bad Request or 404 Not Found, switch models immediately without long delay
+                                    if response.status in (400, 404):
                                         await asyncio.sleep(0.5)
                                     else:
                                         await asyncio.sleep(float(min(2 ** (attempt % 6), 60)))
