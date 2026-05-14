@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [streamToken, setStreamToken] = useState<string | null>(null);
   const [events, setEvents] = useState<AgentEvent[]>([]);
+  const [thinkingLogs, setThinkingLogs] = useState<string>("");
   const [output, setOutput] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +30,8 @@ export default function Dashboard() {
   const handleSubmit = async (goal: string) => {
     setIsProcessing(true);
     setEvents([]);
-    setOutput("🚀 **NexusMind Pipeline Initialized**\nConnecting to autonomous agents via secure stream...\n\n");
+    setThinkingLogs("🚀 **NexusMind Pipeline Initialized**\nConnecting to autonomous agents via secure stream...\n\n");
+    setOutput("");
     setError(null);
     setSessionId(null);
     setStreamToken(null);
@@ -56,28 +58,28 @@ export default function Dashboard() {
     if (event.type === "BACKEND_LOG" || event.type === "AGENT_INITIALIZED") {
       const msg = event.data?.message ? `${event.data.message}\n\n` : "";
       if (msg) {
-        setOutput((prev) => prev + msg);
+        setThinkingLogs((prev) => prev + msg);
       }
       return;
     }
 
     if (event.type === "PLANNING_COMPLETE") {
-      setOutput((prev) => prev + formatPlanningComplete(event.data ?? {}));
+      setThinkingLogs((prev) => prev + formatPlanningComplete(event.data ?? {}));
       return;
     }
 
     if (event.type === "TASK_STARTED") {
-      setOutput((prev) => prev + formatTaskStarted(event.agent, event.data ?? {}));
+      setThinkingLogs((prev) => prev + formatTaskStarted(event.agent, event.data ?? {}));
       return;
     }
 
     if (event.type === "TOOL_CALLED") {
-      setOutput((prev) => prev + formatToolCalled(event.agent, event.data ?? {}));
+      setThinkingLogs((prev) => prev + formatToolCalled(event.agent, event.data ?? {}));
       return;
     }
 
     if (event.type === "REVIEW_STARTED") {
-      setOutput(
+      setThinkingLogs(
         (prev) =>
           prev +
           `🕵️ **Critic** review started (${event.data?.outputs_count ?? "?"} outputs).\n\n`
@@ -88,7 +90,7 @@ export default function Dashboard() {
     if (event.type === "REVIEW_COMPLETE") {
       const score = event.data?.score;
       const approved = event.data?.approved;
-      setOutput(
+      setThinkingLogs(
         (prev) =>
           prev +
           `🕵️ **Critic** review complete${score != null ? ` — score **${score}**` : ""}${
@@ -100,7 +102,7 @@ export default function Dashboard() {
 
     if (event.type === "ASSEMBLY_STARTED") {
       const n = event.data?.agent_outputs_count;
-      setOutput(
+      setThinkingLogs(
         (prev) =>
           prev +
           `🏗️ **Assembler** merging outputs${n != null ? ` (**${n}** agent outputs)` : ""}…\n\n`
@@ -109,7 +111,7 @@ export default function Dashboard() {
     }
 
     if (event.type === "REVISION_STARTED") {
-      setOutput(
+      setThinkingLogs(
         (prev) =>
           prev +
           `🔁 **Revision cycle** ${event.data?.cycle != null ? `**#${event.data.cycle}**` : ""} — fixing high-severity issues…\n\n`
@@ -118,7 +120,7 @@ export default function Dashboard() {
     }
 
     if (event.type === "PLANNING_STARTED" && event.data?.goal) {
-      setOutput((prev) =>
+      setThinkingLogs((prev) =>
         prev + `**Planning started** — _${String(event.data.goal)}_\n\n`
       );
       return;
@@ -139,7 +141,7 @@ export default function Dashboard() {
     if (event.type === "TASK_FAILED") {
       const tid = event.data?.task_id ?? "";
       const err = event.data?.error ? String(event.data.error).slice(0, 300) : "";
-      setOutput((prev) =>
+      setThinkingLogs((prev) =>
         prev + `❌ **${event.agent}** failed **${tid}**${err ? ` — ${err}` : ""}\n\n`
       );
       return;
@@ -148,7 +150,7 @@ export default function Dashboard() {
 
   const handleFinalOutput = useCallback((content: string) => {
     setOutput((prev) => {
-      // If we have initialization logs, add a separator
+      // Add a separator if there are already success logs
       const prefix = prev ? "---\n\n" : "";
       return prev + prefix + "## 🏁 Final Deliverable\n\n" + content;
     });
@@ -234,7 +236,7 @@ export default function Dashboard() {
                 <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
               )}
             </h2>
-            <OutputPanel content={output} isProcessing={isProcessing} />
+            <OutputPanel content={output} thinkingLogs={thinkingLogs} isProcessing={isProcessing} />
           </div>
         </div>
       )}
