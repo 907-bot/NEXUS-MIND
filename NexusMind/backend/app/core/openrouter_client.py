@@ -331,7 +331,16 @@ class OpenRouterClient:
                                 await asyncio.sleep(wait)
                                 continue
 
-                            response.raise_for_status()
+                            if response.status >= 400:
+                                error_text = await response.text()
+                                print(f"⚠️ [OpenRouter] HTTP {response.status} using model {self.model}: {error_text}")
+                                if attempt < max_attempts - 1:
+                                    model_idx = (model_idx + 1) % len(candidates)
+                                    await asyncio.sleep(float(min(2 ** (attempt % 6), 60)))
+                                    continue
+                                else:
+                                    response.raise_for_status()
+                                    
                             data = await response.json()
 
                             if "error" in data:
@@ -422,7 +431,7 @@ class OpenRouterClient:
                     print(
                         f"⚠️ [OpenRouter] HTTP {e.status} on attempt {attempt+1}: {e.message}"
                     )
-                    if e.status == 429 and attempt < max_attempts - 1:
+                    if e.status in (400, 429) and attempt < max_attempts - 1:
                         model_idx = (model_idx + 1) % len(candidates)
                         await asyncio.sleep(float(min(2 ** (attempt % 6), 60)))
                         continue

@@ -102,6 +102,14 @@ class Orchestrator:
                 skill_tag="assembly",
                 output=asm_result,
             )
+        except Exception as e:
+            print(f"⚠️ [ORCHESTRATOR] Assembly failed: {e}")
+            asm_result = {"error": str(e), "summary": "Assembly failed due to an error.", "final_content": ""}
+            await self.memory.publish_event(session_id, {
+                "agent": "AssemblerAgent",
+                "type": "TASK_FAILED",
+                "data": {"task_id": "assembly", "error": str(e)},
+            })
         finally:
             agent_registry.mark_idle(AGENT_REGISTRY_ID[AssemblerAgent])
 
