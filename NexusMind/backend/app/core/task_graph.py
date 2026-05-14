@@ -30,6 +30,11 @@ class TaskGraph:
                 depends_on=t.get("depends_on", []),
                 priority=t.get("priority", 2),
             )
+            
+        # Clean invalid dependencies that don't exist in the graph
+        valid_ids = set(self.nodes.keys())
+        for node in self.nodes.values():
+            node.depends_on = [dep for dep in node.depends_on if dep in valid_ids]
 
     def get_ready(self) -> List[TaskNode]:
         """Return all pending tasks whose dependencies are completed."""
@@ -60,9 +65,15 @@ class TaskGraph:
 
     def has_stuck(self) -> bool:
         """Detect circular dependencies or all-blocked state."""
+        # If any task is running, we are not stuck yet, it might finish and unblock others
+        if any(n.status == "running" for n in self.nodes.values()):
+            return False
+        
         pending = [n for n in self.nodes.values() if n.status == "pending"]
         if not pending:
             return False
+            
+        # If we have pending tasks, no running tasks, and no ready tasks, we are stuck
         return len(self.get_ready()) == 0
 
     def summary(self) -> dict:

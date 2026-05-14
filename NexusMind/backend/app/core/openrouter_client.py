@@ -310,13 +310,6 @@ class OpenRouterClient:
 
         try:
             self.model = candidates[0]
-            await self._emit_backend_log_stream(
-                stream_memory,
-                stream_session_id,
-                f"**{_friendly_model_label(self.model)}** (`{self.model}`) has been assigned to **{self.agent_name or 'Agent'}** for this step.",
-                model=self.model,
-                phase="llm_assigned",
-            )
 
             for attempt in range(max_attempts):
                 self.model = candidates[model_idx % len(candidates)]
@@ -341,19 +334,6 @@ class OpenRouterClient:
                                 )
                                 next_idx = (model_idx + 1) % len(candidates)
                                 next_model = candidates[next_idx]
-                                await self._emit_backend_log_stream(
-                                    stream_memory,
-                                    stream_session_id,
-                                    (
-                                        f"OpenRouter returned **429** — waiting **{wait:.1f}s**, "
-                                        f"then retrying with **{_friendly_model_label(next_model)}** "
-                                        f"(`{next_model}`). (attempt {attempt + 1}/{max_attempts})"
-                                    ),
-                                    http_status=429,
-                                    wait_sec=wait,
-                                    next_model=next_model,
-                                    phase="openrouter_429",
-                                )
                                 model_idx = next_idx
                                 await asyncio.sleep(wait)
                                 continue
@@ -370,16 +350,6 @@ class OpenRouterClient:
                                     )
                                     next_idx = (model_idx + 1) % len(candidates)
                                     next_model = candidates[next_idx]
-                                    await self._emit_backend_log_stream(
-                                        stream_memory,
-                                        stream_session_id,
-                                        (
-                                            f"OpenRouter rate limit: {err_msg[:140]}{'…' if len(err_msg) > 140 else ''} "
-                                            f"— waiting **{wait:.1f}s**, switching to **{_friendly_model_label(next_model)}**."
-                                        ),
-                                        err_snippet=err_msg[:240],
-                                        phase="openrouter_soft_rate_limit",
-                                    )
                                     model_idx = next_idx
                                     await asyncio.sleep(wait)
                                     continue
@@ -425,13 +395,6 @@ class OpenRouterClient:
 
                             if start_idx == -1 or not text.strip():
                                 preview = (raw_content or "")[:180].replace("\n", " ")
-                                await self._emit_backend_log_stream(
-                                    stream_memory,
-                                    stream_session_id,
-                                    "Model returned **non-JSON** (e.g. prose or a shell block). Retrying with another attempt…",
-                                    phase="json_retry_non_object",
-                                    preview=preview + ("…" if len(raw_content or "") > 180 else ""),
-                                )
                                 print(
                                     f"⚠️ [OpenRouter] No JSON object/array in response; retrying. Preview: {preview}"
                                 )
@@ -443,18 +406,6 @@ class OpenRouterClient:
 
                             print(
                                 f"📩 [OpenRouter/{self.model}] JSON response ({len(text)} chars)"
-                            )
-                            await self._emit_backend_log_stream(
-                                stream_memory,
-                                stream_session_id,
-                                (
-                                    f"📩 **[OpenRouter]** `{self.model}` — received **{len(raw_content)}** chars, "
-                                    f"extracted JSON candidate **{len(text)}** chars; parsing…"
-                                ),
-                                phase="openrouter_json_received",
-                                model=self.model,
-                                raw_chars=len(raw_content),
-                                json_candidate_chars=len(text),
                             )
                             try:
                                 return json.loads(text)
@@ -468,19 +419,6 @@ class OpenRouterClient:
                         preview = preview[:320] + "…"
                     print(f"⚠️ [OpenRouter] JSON parse failed on attempt {attempt+1}: {e}")
                     print(f"📄 RAW TEXT (Attempt {attempt+1}):\n{text}\n")
-                    await self._emit_backend_log_stream(
-                        stream_memory,
-                        stream_session_id,
-                        (
-                            f"⚠️ **[OpenRouter]** `{self.model}` — JSON parse failed "
-                            f"(attempt **{attempt + 1}/{max_attempts}**): `{str(e)}`. Retrying…\n\n"
-                            f"📄 **Raw preview:**\n```\n{preview}\n```"
-                        ),
-                        phase="openrouter_json_parse_failed",
-                        model=self.model,
-                        attempt=attempt + 1,
-                        error=str(e),
-                    )
                     if attempt >= max_attempts - 1:
                         snippet = text[:100] + "..." if len(text) > 100 else text
                         raise RuntimeError(
