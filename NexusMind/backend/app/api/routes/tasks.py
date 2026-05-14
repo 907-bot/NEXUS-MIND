@@ -40,6 +40,8 @@ class GoalRequest(BaseModel):
 async def run_nexusmind_pipeline(session_id: str, goal: str, user_id: str):
     """Background task: plan → orchestrate → persist results to PostgreSQL."""
     try:
+        # Grace period to allow frontend SSE stream to connect before events are published
+        await asyncio.sleep(1.5)
         await memory_store.set_status(session_id, "planning")
 
         # Persist session to PostgreSQL
