@@ -315,9 +315,10 @@ class OpenRouterClient:
             raise ValueError("OPENROUTER_API_KEY not configured")
 
         json_instruction = (
-            "\n\nIMPORTANT: Your response MUST be valid JSON only. "
-            "Do NOT include any text, explanation, or markdown fences outside the JSON. "
-            "Output ONLY the raw JSON object or array."
+            "\n\nIMPORTANT: Your response MUST end with a valid JSON block. "
+            "You may include a clean, plain-text narrative BEFORE the JSON block. "
+            "Do NOT use markdown headers or bolding in the narrative. "
+            "Output the JSON structure as raw text at the very end."
         )
 
         messages = [
@@ -362,9 +363,7 @@ class OpenRouterClient:
 
                             if response.status >= 400:
                                 error_text = await response.text()
-                                # If 400 Bad Request or 404 Not Found, the model ID is likely invalid or gone.
                                 if response.status in (400, 404):
-                                    # Log as info/debug instead of error to avoid red lines in UI logs
                                     print(f"ℹ️ [OpenRouter] Skipping unavailable model {self.model} (HTTP {response.status})")
                                     if self.model in candidates:
                                         candidates.remove(self.model)
@@ -375,7 +374,6 @@ class OpenRouterClient:
                                         raise RuntimeError("All available models failed with 400/404.")
                                     continue
                                 
-                                # For other errors (429, 500), print a warning and retry
                                 print(f"⚠️ [OpenRouter] HTTP {response.status} using model {self.model}: {error_text}")
                                 if attempt < max_attempts - 1:
                                     model_idx = (model_idx + 1) % len(candidates)
@@ -417,16 +415,10 @@ class OpenRouterClient:
                             raw_content = data["choices"][0]["message"]["content"]
                             text = raw_content
 
-                            # Any ```lang ... ``` fence (models often use ```bash, ```text, etc.)
-                            fence_match = re.search(
-                                r"```[\w+-]*\s*(.*?)```", text, re.DOTALL
-                            )
-                            if fence_match:
-                                text = fence_match.group(1).strip()
-                            else:
-                                text = text.strip().strip("`").strip()
+                            # Clean up markdown fences but RETAIN surrounding text for TOON narrative
+                            text = re.sub(r"```[\w+-]*", "", text)
+                            text = text.replace("```", "").strip()
 
-                            # ANY text before or after the JSON block is preserved as "TOON" narrative
                             full_raw_text = text
                             
                             start_idx = -1

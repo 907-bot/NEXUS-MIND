@@ -3,28 +3,28 @@ from app.tools.tool_registry import tool_registry
 
 ASSEMBLER_SYSTEM = """
 You are a master architect and system integrator.
-Your mission is to deliver a PERFECT, professional project handoff in PLAIN TEXT.
+Your mission is to deliver a PERFECT, professional project handoff in STRICT PLAIN TEXT.
 
-Output Format (TOON - Token Oriented Object Notation):
-1. **The Narrative (UI TEXT)**: Write a CLEAN, SIMPLE PLAIN TEXT executive summary. 
-   - STRICTLY NO markdown (no #, no **, no `).
-   - NO JSON characters, NO technical jargon.
-   - Use high-level language suitable for a human reader.
-   - If this is a knowledge query (e.g., "What is ML?"), provide the clear explanation here.
-   - MAX 2-3 short paragraphs.
+REQUIRED OUTPUT STRUCTURE:
+1. THE NARRATIVE (TOP SECTION):
+Write a 2-3 paragraph executive summary for a human reader.
+- STRICTLY NO MARKDOWN: Do NOT use #, ##, **, _, [links], or `backticks`.
+- Use PLAIN CAPITALS for headers (e.g., EXECUTIVE SUMMARY).
+- Use simple indentation or hyphens (-) for lists.
+- NO JSON characters or technical symbols in this section.
 
-2. **The Metadata (JSON BLOCK)**: End with a JSON block containing:
-   - narrative: The 2-3 paragraph CLEAN PLAIN TEXT executive summary.
-   - summary: 1-sentence synthesis (plain text).
-   - file_manifest: List of all generated files.
-   - directory_structure: A clear ASCII tree.
-   - social_post: High-impact LinkedIn post script (plain text).
-   - implementation_guide: A MASSIVE, DETAILED PLAIN TEXT report. 
-     - Use ASCII headers (e.g., ==========) instead of markdown #.
-     - Use simple indentation for lists.
-     - Contain EVERY technical detail (Architecture, API specs, Deployment, Code breakdown).
+2. THE METADATA (BOTTOM SECTION):
+End your response with a single, valid JSON block containing:
+{
+  "narrative": "The same 2-3 paragraph summary from above.",
+  "summary": "1-sentence project synthesis.",
+  "file_manifest": ["list", "of", "staged", "files"],
+  "directory_structure": "ASCII tree of the project",
+  "social_post": "A LinkedIn-ready post script in plain text",
+  "implementation_guide": "A MASSIVE, exhaustive plain-text report. Use ======= for headers. Include architecture, setup, and code details."
+}
 
-This JSON block must be valid and placed at the VERY end.
+CRITICAL: If you use a # or ** in your response, you have FAILED. Use ASCII and whitespace only.
 """
 
 
@@ -77,12 +77,14 @@ class AssemblerAgent(BaseAgent):
                     f"[{out.get('agent', 'Unknown')} / {tid}]: {out.get('summary', '')}"
                 )
 
-        # Format staged files as fenced code blocks for Gemini
+        # Format staged files as plain text blocks for the model
         files_section = ""
         for sf in staged_files:
-            ext = sf["filename"].rsplit(".", 1)[-1] if "." in sf["filename"] else "text"
             files_section += (
-                f"\n\n### {sf['filename']}\n```{ext}\n{sf['content']}\n```"
+                f"\n\n[FILE: {sf['filename']}]\n"
+                f"----------------------------------------\n"
+                f"{sf['content']}\n"
+                f"----------------------------------------\n"
             )
 
         critic_section = ""
@@ -90,15 +92,17 @@ class AssemblerAgent(BaseAgent):
             approved = review.get("approved", True)
             issues   = review.get("issues", [])
             critic_section = (
-                f"\n\nCritic review — approved: {approved}. "
-                f"Issues: {issues}"
+                f"\n\n[CRITIC REVIEW]\n"
+                f"Approved: {approved}\n"
+                f"Issues: {issues}\n"
             )
 
         prompt = (
-            f"Agent output summaries:\n" + "\n".join(agent_summaries)
+            f"SUMMARY OF AGENT OUTPUTS:\n" + "\n".join(agent_summaries)
+            + "\n\nACTUAL CODE ASSETS:"
             + files_section
             + critic_section
-            + "\n\nAssemble all of the above into the final deliverable."
+            + "\n\nINSTRUCTION: Assemble all assets into the final plain-text deliverable described in the system prompt."
         )
 
         result = await self.gemini.generate_json(
