@@ -453,8 +453,16 @@ class OpenRouterClient:
 
                             if parsed_json is not None:
                                 if isinstance(parsed_json, dict):
-                                    # Add the full narrative context for "TOON" support
-                                    parsed_json["_toon_narrative"] = full_raw_text
+                                    # TOON support: Separate narrative from structured data
+                                    # Extract everything BEFORE and AFTER the JSON block
+                                    pre_json = text[:start_idx].strip()
+                                    post_json = text[end_idx + 1 :].strip()
+                                    
+                                    # Join them to form the clean narrative
+                                    narrative = "\n\n".join(filter(None, [pre_json, post_json]))
+                                    
+                                    # If the narrative is empty, use the raw text (fallback)
+                                    parsed_json["_toon_narrative"] = narrative if narrative else full_raw_text
                                 return parsed_json
                             
                             # If no valid JSON found but text exists, return it as a narrative
