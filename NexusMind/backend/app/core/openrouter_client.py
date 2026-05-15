@@ -105,8 +105,8 @@ class OpenRouterClient:
         "ResearchAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "DevOpsAgent": "qwen/qwen3-32b:free",
         "ContentAgent": "mistralai/mistral-small-3.1-24b-instruct:free",
-        "CriticAgent": "meta-llama/llama-3.3-70b-instruct:free",
-        "AssemblerAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        "CriticAgent": "qwen/qwen-2.5-72b-instruct:free",
+        "AssemblerAgent": "qwen/qwen-2.5-72b-instruct:free",
     }
 
     # Custom max_tokens for agents that produce large outputs

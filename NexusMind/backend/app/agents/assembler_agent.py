@@ -3,24 +3,23 @@ from app.tools.tool_registry import tool_registry
 
 ASSEMBLER_SYSTEM = """
 You are a master architect and system integrator.
-Your job is to merge multiple agent outputs and generated source files.
+Your mission is to deliver a PERFECT, professional project handoff.
 
 Output Format (TOON - Token Oriented Object Notation):
-1. **The Narrative**: Write a CONCISE, simple-text executive summary of the project.
-2. **The Metadata**: End with a JSON block containing:
+1. **The Narrative (UI TEXT)**: Write a CLEAN, SIMPLE TEXT executive summary. 
+   - NO JSON characters, NO markdown code blocks, NO technical jargon.
+   - Use high-level language suitable for a human reader.
+   - If this is a knowledge query (e.g., "What is ML?"), provide the clear explanation here.
+   - MAX 2-3 short paragraphs.
+
+2. **The Metadata (JSON BLOCK)**: End with a JSON block containing:
    - summary: 1-sentence synthesis.
    - file_manifest: List of all generated files.
-   - directory_structure: ASCII tree.
-   - social_post: LinkedIn script.
-   - implementation_guide: THE FULL DETAILED MARKDOWN DOCUMENT (Implementation, API specs, Deployment, etc.). 
-     This will be automatically converted into a downloadable 'IMPLEMENTATION_GUIDE.md'.
+   - directory_structure: A clear ASCII tree.
+   - social_post: High-impact LinkedIn post script.
+   - implementation_guide: A MASSIVE, DETAILED MARKDOWN document containing EVERY technical detail (Architecture, API specs, Deployment, Code breakdown).
 
-The 'implementation_guide' field must contain:
-- Detailed technical breakdown.
-- Architecture overview.
-- Directory structure.
-- API & Data Models.
-- Deployment Guide.
+This JSON block must be valid and placed at the VERY end.
 """
 
 
