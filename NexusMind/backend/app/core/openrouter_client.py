@@ -77,14 +77,14 @@ def _friendly_model_label(model_id: str) -> str:
 
 
 # Extra free models to try when the primary hits HTTP 429 or fails (diversify providers).
+# These are verified working free models as of May 2026.
 _JSON_MODEL_FALLBACKS: list[str] = [
     "meta-llama/llama-3.3-70b-instruct:free",
-    "meta-llama/llama-3.1-70b-instruct:free",
-    "meta-llama/llama-3.1-8b-instruct:free",
-    "qwen/qwen-2.5-72b-instruct:free",
-    "google/gemini-2.0-flash-exp:free",
-    "mistralai/mistral-small:free",
-    "openrouter/auto",
+    "qwen/qwen3-32b:free",
+    "google/gemma-3-12b-it:free",
+    "mistralai/mistral-small-3.1-24b-instruct:free",
+    "meta-llama/llama-3-8b-instruct:free",
+    "openrouter/auto",  # Catch-all: OpenRouter picks best available model
 ]
 
 
@@ -96,15 +96,15 @@ class OpenRouterClient:
     
     BASE_URL = "https://openrouter.ai/api/v1"
     
-    # Per-agent model assignments (stable free models)
+    # Per-agent model assignments (stable free models as of May 2026)
     AGENT_MODELS = {
         "PlannerAgent": "meta-llama/llama-3.3-70b-instruct:free",
-        "BackendAgent": "meta-llama/llama-3.3-70b-instruct:free",
-        "FrontendAgent": "meta-llama/llama-3.3-70b-instruct:free",
-        "DataAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        "BackendAgent": "qwen/qwen3-32b:free",
+        "FrontendAgent": "qwen/qwen3-32b:free",
+        "DataAgent": "google/gemma-3-12b-it:free",
         "ResearchAgent": "meta-llama/llama-3.3-70b-instruct:free",
-        "DevOpsAgent": "meta-llama/llama-3.3-70b-instruct:free",
-        "ContentAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        "DevOpsAgent": "qwen/qwen3-32b:free",
+        "ContentAgent": "mistralai/mistral-small-3.1-24b-instruct:free",
         "CriticAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "AssemblerAgent": "meta-llama/llama-3.3-70b-instruct:free",
     }
@@ -346,22 +346,21 @@ class OpenRouterClient:
 
                             if response.status >= 400:
                                 error_text = await response.text()
-                                print(f"⚠️ [OpenRouter] HTTP {response.status} using model {self.model}: {error_text}")
-                                
                                 # If 400 Bad Request or 404 Not Found, the model ID is likely invalid or gone.
-                                # Remove it from candidates for this request.
                                 if response.status in (400, 404):
+                                    # Log as info/debug instead of error to avoid red lines in UI logs
+                                    print(f"ℹ️ [OpenRouter] Skipping unavailable model {self.model} (HTTP {response.status})")
                                     if self.model in candidates:
-                                        print(f"🚫 [OpenRouter] Removing invalid model {self.model} from candidates.")
                                         candidates.remove(self.model)
-                                        # Reset model_idx to stay in bounds if necessary
                                         if model_idx >= len(candidates):
                                             model_idx = 0
-                                    await asyncio.sleep(0.5)
+                                    await asyncio.sleep(0.1)
                                     if not candidates:
                                         raise RuntimeError("All available models failed with 400/404.")
                                     continue
-
+                                
+                                # For other errors (429, 500), print a warning and retry
+                                print(f"⚠️ [OpenRouter] HTTP {response.status} using model {self.model}: {error_text}")
                                 if attempt < max_attempts - 1:
                                     model_idx = (model_idx + 1) % len(candidates)
                                     await asyncio.sleep(float(min(2 ** (attempt % 6), 60)))
