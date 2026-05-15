@@ -59,14 +59,34 @@ class Orchestrator:
         max_iterations = 10 # Safety limit
         
         while current_agent_name and current_agent_name != "AssemblerAgent" and iteration < max_iterations:
+            # Find Agent Class (Case-insensitive + Alias handling)
             AgentClass = None
+            search_name = (current_agent_name or "").strip().lower()
+            
+            # Map aliases to standard agent names
+            aliases = {
+                "pythonscriptwriter": "BackendAgent",
+                "backend": "BackendAgent",
+                "frontend": "FrontendAgent",
+                "researcher": "ResearchAgent",
+                "reviewer": "CriticAgent",
+                "architect": "AssemblerAgent",
+                "assembler": "AssemblerAgent",
+            }
+            
+            resolved_name = aliases.get(search_name, current_agent_name)
+            
             for agent_cls in SKILL_TO_AGENT.values():
-                if agent_cls.__name__ == current_agent_name:
+                if agent_cls.__name__.lower() == resolved_name.lower():
                     AgentClass = agent_cls
                     break
             
+            # AssemblerAgent is special (not in SKILL_TO_AGENT)
+            if not AgentClass and resolved_name.lower() == "assembleragent":
+                AgentClass = AssemblerAgent
+
             if not AgentClass:
-                print(f"⚠️ Unknown agent '{current_agent_name}', stopping swarm loop.")
+                print(f"⚠️ Unknown agent '{current_agent_name}' (resolved as '{resolved_name}'), stopping swarm loop.")
                 break
                 
             task_id = f"step_{iteration}_{current_agent_name.lower()}"
