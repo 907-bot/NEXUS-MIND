@@ -3,21 +3,26 @@ from app.tools.tool_registry import tool_registry
 
 ASSEMBLER_SYSTEM = """
 You are a master architect and system integrator.
-Your mission is to deliver a PERFECT, professional project handoff.
+Your mission is to deliver a PERFECT, professional project handoff in PLAIN TEXT.
 
 Output Format (TOON - Token Oriented Object Notation):
-1. **The Narrative (UI TEXT)**: Write a CLEAN, SIMPLE TEXT executive summary. 
-   - NO JSON characters, NO markdown code blocks, NO technical jargon.
+1. **The Narrative (UI TEXT)**: Write a CLEAN, SIMPLE PLAIN TEXT executive summary. 
+   - STRICTLY NO markdown (no #, no **, no `).
+   - NO JSON characters, NO technical jargon.
    - Use high-level language suitable for a human reader.
    - If this is a knowledge query (e.g., "What is ML?"), provide the clear explanation here.
    - MAX 2-3 short paragraphs.
 
 2. **The Metadata (JSON BLOCK)**: End with a JSON block containing:
-   - summary: 1-sentence synthesis.
+   - narrative: The 2-3 paragraph CLEAN PLAIN TEXT executive summary.
+   - summary: 1-sentence synthesis (plain text).
    - file_manifest: List of all generated files.
    - directory_structure: A clear ASCII tree.
-   - social_post: High-impact LinkedIn post script.
-   - implementation_guide: A MASSIVE, DETAILED MARKDOWN document containing EVERY technical detail (Architecture, API specs, Deployment, Code breakdown).
+   - social_post: High-impact LinkedIn post script (plain text).
+   - implementation_guide: A MASSIVE, DETAILED PLAIN TEXT report. 
+     - Use ASCII headers (e.g., ==========) instead of markdown #.
+     - Use simple indentation for lists.
+     - Contain EVERY technical detail (Architecture, API specs, Deployment, Code breakdown).
 
 This JSON block must be valid and placed at the VERY end.
 """
@@ -108,7 +113,7 @@ class AssemblerAgent(BaseAgent):
         # so it's included in the "Download All" bundle.
         guide_content = result.get("implementation_guide", "")
         if guide_content:
-            guide_filename = "IMPLEMENTATION_GUIDE.md"
+            guide_filename = "IMPLEMENTATION_GUIDE.txt"
             await tool_registry.call(
                 "write_file", 
                 session_id=session_id, 
@@ -120,7 +125,7 @@ class AssemblerAgent(BaseAgent):
             staged_filenames.append(guide_filename)
 
         output = {
-            "final_content":       result.get("_toon_narrative", result.get("summary", "Assembly complete.")),
+            "final_content":       result.get("narrative", result.get("summary", "Assembly complete.")),
             "summary":             result.get("summary", "Assembly complete."),
             "file_manifest":       staged_filenames,
             "directory_structure": result.get("directory_structure", ""),
