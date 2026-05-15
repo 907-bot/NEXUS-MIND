@@ -21,7 +21,7 @@ from app.core.openrouter_client import OpenRouterClient, create_llm_client
 # Test configurations for each agent
 AGENT_TESTS = {
     "BackendAgent": {
-        "model": "qwen/qwen3-coder:free",
+        "model": "qwen/qwen3-32b:free",
         "system": """You are an expert backend engineer specializing in Python, FastAPI, PostgreSQL, and REST APIs.
 Given a task description, produce production-ready backend code.
 Respond ONLY with valid JSON in this exact format:
@@ -37,7 +37,7 @@ Respond ONLY with valid JSON in this exact format:
         "validate": lambda r: "files" in r and isinstance(r.get("files"), list),
     },
     "FrontendAgent": {
-        "model": "qwen/qwen3-coder:free",
+        "model": "qwen/qwen3-32b:free",
         "system": """You are an expert frontend engineer specializing in React, Next.js 14, TypeScript, and Tailwind CSS.
 Given a task description, produce production-ready frontend code.
 Respond ONLY with valid JSON in this exact format:
@@ -52,7 +52,7 @@ Respond ONLY with valid JSON in this exact format:
         "validate": lambda r: "files" in r and isinstance(r.get("files"), list),
     },
     "DataAgent": {
-        "model": "google/gemma-4-31b-it:free",
+        "model": "google/gemma-3-12b-it:free",
         "system": """You are an expert data scientist and analyst.
 Respond ONLY with valid JSON:
 {
@@ -102,7 +102,7 @@ Respond ONLY with valid JSON:
         "validate": lambda r: "content" in r and "summary" in r,
     },
     "CriticAgent": {
-        "model": "openai/gpt-oss-120b:free",
+        "model": "mistralai/mistral-small-3.1-24b-instruct:free",
         "system": """You are a strict quality assurance reviewer and critic.
 Respond ONLY with valid JSON:
 {
@@ -115,7 +115,7 @@ Respond ONLY with valid JSON:
         "validate": lambda r: "score" in r and "approved" in r,
     },
     "AssemblerAgent": {
-        "model": "nvidia/nemotron-3-super-120b-a3b:free",
+        "model": "meta-llama/llama-3.3-70b-instruct:free",
         "system": """You are a master architect and system integrator.
 Respond ONLY with valid JSON:
 {

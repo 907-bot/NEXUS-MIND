@@ -51,12 +51,18 @@ def _looks_like_rate_limit_text(message: str) -> bool:
 
 def _friendly_model_label(model_id: str) -> str:
     mid = (model_id or "").lower()
-    if "qwen/qwen3-coder" in mid or "qwen3-coder" in mid:
+    if "qwen/qwen3" in mid or "qwen3" in mid:
+        return "Qwen3"
+    if "qwen/qwen-2.5-coder" in mid or "qwen-2.5-coder" in mid:
         return "Qwen Coder"
     if "llama-3.3-70b" in mid:
         return "Llama 3.3 70B"
-    if "gemma-4" in mid:
-        return "Gemma 4"
+    if "gemma-3" in mid:
+        return "Gemma 3"
+    if "mistral-small" in mid:
+        return "Mistral Small"
+    if "llama-3-8b" in mid:
+        return "Llama 3 8B"
     if "gpt-oss-120b" in mid:
         return "GPT-OSS 120B"
     if "/" in (model_id or ""):
@@ -67,10 +73,10 @@ def _friendly_model_label(model_id: str) -> str:
 # Extra free models to try when the primary hits HTTP 429 (diversify providers).
 _JSON_MODEL_FALLBACKS: list[str] = [
     "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen/qwen-2.5-coder-32b-instruct:free",
-    "google/gemini-2.0-flash-lite-preview-02-05:free",
-    "nvidia/llama-3.1-nemotron-70b-instruct:free",
-    "nousresearch/hermes-3-llama-3.1-405b:free",
+    "qwen/qwen3-32b:free",
+    "google/gemma-3-12b-it:free",
+    "mistralai/mistral-small-3.1-24b-instruct:free",
+    "meta-llama/llama-3-8b-instruct:free",
 ]
 
 
@@ -84,12 +90,12 @@ class OpenRouterClient:
     
     # Per-agent model assignments (free models)
     AGENT_MODELS = {
-        "PlannerAgent": "meta-llama/llama-3.3-70b-instruct:free", # Fast and smart planning
-        "BackendAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
-        "FrontendAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
+        "PlannerAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        "BackendAgent": "qwen/qwen3-32b:free",
+        "FrontendAgent": "qwen/qwen3-32b:free",
         "DataAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "ResearchAgent": "meta-llama/llama-3.3-70b-instruct:free",
-        "DevOpsAgent": "qwen/qwen-2.5-coder-32b-instruct:free",
+        "DevOpsAgent": "qwen/qwen3-32b:free",
         "ContentAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "CriticAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "AssemblerAgent": "meta-llama/llama-3.3-70b-instruct:free",
