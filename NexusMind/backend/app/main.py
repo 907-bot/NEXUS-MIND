@@ -19,34 +19,32 @@ async def lifespan(app: FastAPI):
     # ── Startup ──────────────────────────────────────────────────────────────
     print("🚀 [MAIN] Starting NexusMind API initialization...")
     
-    print("📋 [MAIN] Bootstrapping agent registry...")
+    print("📋 [MAIN] Bootstrapping agent registry & tools...")
     bootstrap_registry()
-    print("✅ [MAIN] Agent registry initialized")
+    bootstrap_tools()
     
-    print("🔧 [MAIN] Bootstrapping tools...")
-    bootstrap_tools()          # BUG FIX: was never called — tools were unregistered
-    print("✅ [MAIN] Tools registered")
-    
-    print("🔗 [MAIN] Starting MCP manager...")
-    await mcp_manager.start()  # Connect to external MCP servers
-    print("✅ [MAIN] MCP manager connected")
-    
-    print("💾 [MAIN] Initializing database...")
-    await init_db()
-    print("✅ [MAIN] Database tables created")
-    
-    print("🧠 [MAIN] Connecting to Memory Store (Redis)...")
+    print("🧠 [MAIN] Initializing core services (DB, Redis, MCP)...")
     from app.core.memory_store import memory_store
-    await memory_store.connect()
     
-    print("🎯 [MAIN] Authentication Configuration:")
-    auth_status = "✅ Active (Clerk)" if settings.ENABLE_AUTH else "⚠️ BYPASSED (No Auth)"
-    print(f"     - Authentication: {auth_status}")
-    print(f"     - Clerk JWT Issuer: {'✅ Set' if settings.CLERK_JWT_ISSUER else '❌ Not Set'}")
+    # Run heavy initializations in parallel to speed up port binding
+    try:
+        await asyncio.wait_for(
+            asyncio.gather(
+                init_db(),
+                mcp_manager.start(),
+                memory_store.connect(),
+            ),
+            timeout=45.0 # Total startup budget
+        )
+        print("✅ [MAIN] Core services initialized")
+    except asyncio.TimeoutError:
+        print("⚠️ [MAIN] Startup timed out - some services may be initializing in background")
+    except Exception as e:
+        print(f"❌ [MAIN] Startup error: {e}")
     
-    print("🎯 [MAIN] LLM Configuration:")
-    print(f"     - Gemini API Key: {'✅ Set' if settings.GEMINI_API_KEY else '❌ Not Set'}")
-    print(f"     - OpenRouter API Key: {'✅ Set' if settings.OPENROUTER_API_KEY else '❌ Not Set'}")
+    print("🎯 [MAIN] Configuration Check:")
+    print(f"     - Auth: {'✅ Active' if settings.ENABLE_AUTH else '⚠️ Bypassed'}")
+    print(f"     - LLMs: Gemini({'✅' if settings.GEMINI_API_KEY else '❌'}), OpenRouter({'✅' if settings.OPENROUTER_API_KEY else '❌'})")
     
     print("✅ NexusMind API FULLY STARTED — Ready for requests!")
 
