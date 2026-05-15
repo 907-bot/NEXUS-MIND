@@ -21,7 +21,7 @@ from app.core.openrouter_client import OpenRouterClient, create_llm_client
 # Test configurations for each agent
 AGENT_TESTS = {
     "BackendAgent": {
-        "model": "qwen/qwen3-32b:free",
+        "model": "meta-llama/llama-3.3-70b-instruct:free",
         "system": """You are an expert backend engineer specializing in Python, FastAPI, PostgreSQL, and REST APIs.
 Given a task description, produce production-ready backend code.
 Respond ONLY with valid JSON in this exact format:
@@ -37,7 +37,7 @@ Respond ONLY with valid JSON in this exact format:
         "validate": lambda r: "files" in r and isinstance(r.get("files"), list),
     },
     "FrontendAgent": {
-        "model": "qwen/qwen3-32b:free",
+        "model": "meta-llama/llama-3.3-70b-instruct:free",
         "system": """You are an expert frontend engineer specializing in React, Next.js 14, TypeScript, and Tailwind CSS.
 Given a task description, produce production-ready frontend code.
 Respond ONLY with valid JSON in this exact format:
@@ -52,7 +52,7 @@ Respond ONLY with valid JSON in this exact format:
         "validate": lambda r: "files" in r and isinstance(r.get("files"), list),
     },
     "DataAgent": {
-        "model": "google/gemma-3-12b-it:free",
+        "model": "meta-llama/llama-3.3-70b-instruct:free",
         "system": """You are an expert data scientist and analyst.
 Respond ONLY with valid JSON:
 {
@@ -102,7 +102,7 @@ Respond ONLY with valid JSON:
         "validate": lambda r: "content" in r and "summary" in r,
     },
     "CriticAgent": {
-        "model": "mistralai/mistral-small-3.1-24b-instruct:free",
+        "model": "meta-llama/llama-3.3-70b-instruct:free",
         "system": """You are a strict quality assurance reviewer and critic.
 Respond ONLY with valid JSON:
 {

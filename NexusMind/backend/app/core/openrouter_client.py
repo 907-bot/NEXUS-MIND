@@ -51,32 +51,40 @@ def _looks_like_rate_limit_text(message: str) -> bool:
 
 def _friendly_model_label(model_id: str) -> str:
     mid = (model_id or "").lower()
-    if "qwen/qwen3" in mid or "qwen3" in mid:
-        return "Qwen3"
-    if "qwen/qwen-2.5-coder" in mid or "qwen-2.5-coder" in mid:
-        return "Qwen Coder"
+    if "qwen/qwen-2.5" in mid or "qwen-2.5" in mid:
+        return "Qwen 2.5"
+    if "qwen/qwen-3" in mid or "qwen-3" in mid:
+        return "Qwen 3"
     if "llama-3.3-70b" in mid:
         return "Llama 3.3 70B"
+    if "gemma-2" in mid:
+        return "Gemma 2"
     if "gemma-3" in mid:
         return "Gemma 3"
     if "mistral-small" in mid:
         return "Mistral Small"
     if "llama-3-8b" in mid:
         return "Llama 3 8B"
-    if "gpt-oss-120b" in mid:
-        return "GPT-OSS 120B"
+    if "gemini-2.0-flash" in mid:
+        return "Gemini 2.0 Flash"
+    if "gpt-oss" in mid:
+        return "GPT-OSS"
+    if "openrouter/auto" in mid:
+        return "Auto Router"
     if "/" in (model_id or ""):
         return model_id.split("/")[-1].replace(":free", "")
     return model_id or "model"
 
 
-# Extra free models to try when the primary hits HTTP 429 (diversify providers).
+# Extra free models to try when the primary hits HTTP 429 or fails (diversify providers).
 _JSON_MODEL_FALLBACKS: list[str] = [
     "meta-llama/llama-3.3-70b-instruct:free",
-    "qwen/qwen3-32b:free",
-    "google/gemma-3-12b-it:free",
-    "mistralai/mistral-small-3.1-24b-instruct:free",
-    "meta-llama/llama-3-8b-instruct:free",
+    "meta-llama/llama-3.1-70b-instruct:free",
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "qwen/qwen-2.5-72b-instruct:free",
+    "google/gemini-2.0-flash-exp:free",
+    "mistralai/mistral-small:free",
+    "openrouter/auto",
 ]
 
 
@@ -88,14 +96,14 @@ class OpenRouterClient:
     
     BASE_URL = "https://openrouter.ai/api/v1"
     
-    # Per-agent model assignments (free models)
+    # Per-agent model assignments (stable free models)
     AGENT_MODELS = {
         "PlannerAgent": "meta-llama/llama-3.3-70b-instruct:free",
-        "BackendAgent": "qwen/qwen3-32b:free",
-        "FrontendAgent": "qwen/qwen3-32b:free",
+        "BackendAgent": "meta-llama/llama-3.3-70b-instruct:free",
+        "FrontendAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "DataAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "ResearchAgent": "meta-llama/llama-3.3-70b-instruct:free",
-        "DevOpsAgent": "qwen/qwen3-32b:free",
+        "DevOpsAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "ContentAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "CriticAgent": "meta-llama/llama-3.3-70b-instruct:free",
         "AssemblerAgent": "meta-llama/llama-3.3-70b-instruct:free",
@@ -339,13 +347,24 @@ class OpenRouterClient:
                             if response.status >= 400:
                                 error_text = await response.text()
                                 print(f"⚠️ [OpenRouter] HTTP {response.status} using model {self.model}: {error_text}")
+                                
+                                # If 400 Bad Request or 404 Not Found, the model ID is likely invalid or gone.
+                                # Remove it from candidates for this request.
+                                if response.status in (400, 404):
+                                    if self.model in candidates:
+                                        print(f"🚫 [OpenRouter] Removing invalid model {self.model} from candidates.")
+                                        candidates.remove(self.model)
+                                        # Reset model_idx to stay in bounds if necessary
+                                        if model_idx >= len(candidates):
+                                            model_idx = 0
+                                    await asyncio.sleep(0.5)
+                                    if not candidates:
+                                        raise RuntimeError("All available models failed with 400/404.")
+                                    continue
+
                                 if attempt < max_attempts - 1:
                                     model_idx = (model_idx + 1) % len(candidates)
-                                    # If 400 Bad Request or 404 Not Found, switch models immediately without long delay
-                                    if response.status in (400, 404):
-                                        await asyncio.sleep(0.5)
-                                    else:
-                                        await asyncio.sleep(float(min(2 ** (attempt % 6), 60)))
+                                    await asyncio.sleep(float(min(2 ** (attempt % 6), 60)))
                                     continue
                                 else:
                                     response.raise_for_status()
