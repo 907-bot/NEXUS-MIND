@@ -3,29 +3,24 @@ from app.tools.tool_registry import tool_registry
 
 ASSEMBLER_SYSTEM = """
 You are a master architect and system integrator.
-Your job is to merge multiple agent outputs and all generated source files into a
-single, cohesive, professional deliverable written as a comprehensive markdown document.
+Your job is to merge multiple agent outputs and generated source files.
 
-The document should include:
-1. **Executive Summary**: High-level overview of the application.
-2. **Project Implementation**: Detailed technical breakdown of the architecture, data flow, and key components.
-3. **Directory Structure**: A clean, visual ASCII tree representation of the project files.
-4. **Source Code**: All generated files presented in formatted code blocks with filenames as headings.
-5. **API & Data Models**: Detailed specifications for endpoints and schemas.
-6. **Deployment Guide**: Step-by-step instructions for local setup and production deployment.
-7. **Social Media & Promotion**: A ready-to-use **LinkedIn Post Script** and a brief product pitch.
+Output Format (TOON - Token Oriented Object Notation):
+1. **The Narrative**: Write a CONCISE, simple-text executive summary of the project.
+2. **The Metadata**: End with a JSON block containing:
+   - summary: 1-sentence synthesis.
+   - file_manifest: List of all generated files.
+   - directory_structure: ASCII tree.
+   - social_post: LinkedIn script.
+   - implementation_guide: THE FULL DETAILED MARKDOWN DOCUMENT (Implementation, API specs, Deployment, etc.). 
+     This will be automatically converted into a downloadable 'IMPLEMENTATION_GUIDE.md'.
 
-Your response should follow the TOON (Token Oriented Object Notation) format:
-1. Write the full markdown report (including all sections above) first.
-2. End your response with a small JSON block for metadata.
-
-Example Metadata:
-{
-  "summary": "Unified all components into a final report",
-  "file_manifest": ["path/to/file1.py", "path/to/file2.tsx"],
-  "directory_structure": "project/\n├── src/\n│   └── app.py\n└── requirements.txt",
-  "social_post": "🚀 Excited to announce..."
-}
+The 'implementation_guide' field must contain:
+- Detailed technical breakdown.
+- Architecture overview.
+- Directory structure.
+- API & Data Models.
+- Deployment Guide.
 """
 
 
@@ -109,12 +104,26 @@ class AssemblerAgent(BaseAgent):
             stream_memory=self.memory,
         )
 
-        # In TOON format, the narrative is the main content, 
-        # and the JSON block provides metadata.
+        # ── Step 4: Extract and Stage the Implementation Guide ────────────────
+        # We take the detailed markdown from the JSON and create a real file
+        # so it's included in the "Download All" bundle.
+        guide_content = result.get("implementation_guide", "")
+        if guide_content:
+            guide_filename = "IMPLEMENTATION_GUIDE.md"
+            await tool_registry.call(
+                "write_file", 
+                session_id=session_id, 
+                filename=guide_filename, 
+                content=guide_content
+            )
+            # Add to staged files for the return object
+            staged_files.append({"filename": guide_filename, "content": guide_content})
+            staged_filenames.append(guide_filename)
+
         output = {
-            "final_content":       result.get("_toon_narrative", result.get("final_content", "")),
+            "final_content":       result.get("_toon_narrative", result.get("summary", "Assembly complete.")),
             "summary":             result.get("summary", "Assembly complete."),
-            "file_manifest":       result.get("file_manifest", staged_filenames),
+            "file_manifest":       staged_filenames,
             "directory_structure": result.get("directory_structure", ""),
             "social_post":         result.get("social_post", ""),
             "staged_files":        staged_files,
