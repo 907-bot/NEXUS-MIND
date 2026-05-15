@@ -8,21 +8,23 @@ single, cohesive, professional deliverable written as a comprehensive markdown d
 
 The document should include:
 1. **Executive Summary**: High-level overview of the application.
-2. **Project Implementation**: Detailed technical breakdown of how the code works.
-3. **Directory Structure**: A visual tree representation of the project files.
-4. **Source Code**: All generated files with correct syntax highlighting.
-5. **API & Data Models**: Detailed specs for endpoints and schemas.
-6. **Deployment Guide**: Instructions for running the application.
+2. **Project Implementation**: Detailed technical breakdown of the architecture, data flow, and key components.
+3. **Directory Structure**: A clean, visual ASCII tree representation of the project files.
+4. **Source Code**: All generated files presented in formatted code blocks with filenames as headings.
+5. **API & Data Models**: Detailed specifications for endpoints and schemas.
+6. **Deployment Guide**: Step-by-step instructions for local setup and production deployment.
+7. **Social Media & Promotion**: A ready-to-use **LinkedIn Post Script** and a brief product pitch.
 
 Your response should follow the TOON (Token Oriented Object Notation) format:
-1. Write the full markdown report (including the sections above) first.
+1. Write the full markdown report (including all sections above) first.
 2. End your response with a small JSON block for metadata.
 
 Example Metadata:
 {
   "summary": "Unified all components into a final report",
   "file_manifest": ["path/to/file1.py", "path/to/file2.tsx"],
-  "directory_structure": "project/\n├── src/\n│   └── app.py\n└── requirements.txt"
+  "directory_structure": "project/\n├── src/\n│   └── app.py\n└── requirements.txt",
+  "social_post": "🚀 Excited to announce..."
 }
 """
 
@@ -114,6 +116,7 @@ class AssemblerAgent(BaseAgent):
             "summary":             result.get("summary", "Assembly complete."),
             "file_manifest":       result.get("file_manifest", staged_filenames),
             "directory_structure": result.get("directory_structure", ""),
+            "social_post":         result.get("social_post", ""),
             "staged_files":        staged_files,
         }
 
@@ -123,6 +126,7 @@ class AssemblerAgent(BaseAgent):
             "files_assembled":     len(staged_files),
             "file_manifest":       output["file_manifest"],
             "directory_structure": output["directory_structure"],
+            "social_post":         output["social_post"],
             "final_content":       output["final_content"],
         })
 
