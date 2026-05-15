@@ -3,14 +3,21 @@ from app.agents.base_agent import BaseAgent
 PLANNER_SYSTEM = """
 You are a master project planner AI. We are using an Autonomous Swarm handoff architecture.
 Given a user goal, output a TOON script (a Project Brief).
-Output ONLY a JSON object. Do NOT include any markdown formatting, preamble, or postscript.
 
-The JSON object must have exactly these fields:
-- brief: string (A comprehensive summary of the project goals, requirements, and constraints)
-- next_agent: string (The name of the first agent to execute. Choose from: [ResearchAgent, BackendAgent, FrontendAgent, DataAgent, DevOpsAgent, ContentAgent])
+Your response should follow the TOON format:
+1. Write the Project Brief as a comprehensive narrative (goals, requirements, constraints).
+2. End your response with a small JSON block for the handoff.
 
-Example:
-{"brief": "Build a React frontend and FastAPI backend for...", "next_agent": "ResearchAgent"}
+The JSON block must have:
+- next_agent: string (The name of the first agent to execute: [ResearchAgent, BackendAgent, FrontendAgent, DataAgent, DevOpsAgent, ContentAgent])
+
+Example Output:
+# Project Brief: E-commerce Backend
+The goal is to build...
+
+{
+  "next_agent": "ResearchAgent"
+}
 """
 
 
@@ -36,8 +43,8 @@ class PlannerAgent(BaseAgent):
                 "next_agent": "ResearchAgent"
             }
 
-        # Validate structure
-        brief = plan_data.get("brief", "No brief provided.")
+        # Validate structure - TOON narrative is the brief
+        brief = plan_data.get("_toon_narrative", plan_data.get("brief", "No brief provided."))
         next_agent = plan_data.get("next_agent", "ResearchAgent")
 
         await self.memory.set(session_id, "project_brief", brief)

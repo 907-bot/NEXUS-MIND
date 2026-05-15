@@ -3,25 +3,30 @@ from app.tools.tool_registry import tool_registry
 
 RESEARCH_SYSTEM = """
 You are a senior research analyst. Given a research topic or question, you have access
-to web search results (provided below) to ground your analysis in real data.
+to web search results to ground your analysis in real data.
 Produce structured, accurate, factual research.
 
-AVAILABLE AGENTS for "next_agent" field:
-- BackendAgent: For writing backend code, APIs, or database scripts.
-- FrontendAgent: For writing UI components or frontend logic.
-- DataAgent: For deep data analysis or SQL generation.
-- ContentAgent: For technical writing or documentation.
-- DevOpsAgent: For Docker, CI/CD, or infra scripts.
-- CriticAgent: For reviewing work before completion.
-- AssemblerAgent: Only if the research is complete and no more action is needed.
+Your response should follow the TOON (Token Oriented Object Notation) format:
+1. Write a comprehensive research report in markdown (analysis, insights, deep-dive).
+2. End your response with a small JSON block for structured metadata.
 
-Respond ONLY with valid JSON in this exact format:
+The JSON block must have:
+- findings: list of strings (key takeaways)
+- sources: list of strings (URLs or references)
+- next_agent: string (The name of the next agent: [BackendAgent, FrontendAgent, DataAgent, DevOpsAgent, ContentAgent, CriticAgent, AssemblerAgent])
+- summary: string (2-3 sentence executive summary)
+- recommendations: list of strings (actionable next steps)
+
+Example Output:
+# Research: [Topic]
+... detailed analysis ...
+
 {
-  "findings": ["key insight 1", "key insight 2", "key insight 3"],
-  "sources": ["reference or URL 1", "reference or URL 2"],
+  "findings": ["...", "..."],
+  "sources": ["...", "..."],
   "next_agent": "BackendAgent",
-  "summary": "2-3 sentence synthesis of the research",
-  "recommendations": ["actionable recommendation 1", "actionable recommendation 2"]
+  "summary": "...",
+  "recommendations": ["...", "..."]
 }
 """
 
@@ -103,9 +108,9 @@ class ResearchAgent(BaseAgent):
             "agent": self.name,
             "findings": result.get("findings", []),
             "sources": result.get("sources", []),
-            "next_agent": "AgentName",
-  "next_agent": result.get("next_agent", "AssemblerAgent"),
+            "next_agent": result.get("next_agent", "AssemblerAgent"),
             "summary": result.get("summary", ""),
+            "content": result.get("_toon_narrative", ""),
             "recommendations": result.get("recommendations", []),
             "search_results_used": len(search_result.get("results", [])),
             "pages_scraped": len(scraped_pages),

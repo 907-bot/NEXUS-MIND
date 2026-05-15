@@ -109,6 +109,16 @@ class OpenRouterClient:
         "AssemblerAgent": "meta-llama/llama-3.3-70b-instruct:free",
     }
 
+    # Custom max_tokens for agents that produce large outputs
+    AGENT_MAX_TOKENS = {
+        "AssemblerAgent": 8192,
+        "BackendAgent": 6144,
+        "FrontendAgent": 6144,
+        "ResearchAgent": 6144,
+        "DataAgent": 6144,
+        "PlannerAgent": 4096,  # Usually fine, but keep explicit
+    }
+
     _JSON_MAX_ATTEMPTS = 12
 
     @staticmethod
@@ -142,6 +152,12 @@ class OpenRouterClient:
         else:
             # Fallback if no specific assignment
             self.model = "meta-llama/llama-3.3-70b-instruct:free"
+        
+        # Determine max_tokens
+        if agent_name and agent_name in self.AGENT_MAX_TOKENS:
+            self.max_tokens = self.AGENT_MAX_TOKENS[agent_name]
+        else:
+            self.max_tokens = max_tokens
         
         api_status = "✅ API Key Set" if self.api_key else "❌ No API Key"
         print(f"🔌 [OpenRouter] Client initialized for {agent_name or 'Unknown'}")
@@ -410,37 +426,47 @@ class OpenRouterClient:
                             else:
                                 text = text.strip().strip("`").strip()
 
+                            # ANY text before or after the JSON block is preserved as "TOON" narrative
+                            full_raw_text = text
+                            
                             start_idx = -1
                             for i, char in enumerate(text):
                                 if char in ("{", "["):
                                     start_idx = i
                                     break
 
+                            parsed_json = None
                             if start_idx != -1:
                                 end_char = "}" if text[start_idx] == "{" else "]"
                                 end_idx = text.rfind(end_char)
                                 if end_idx != -1:
-                                    text = text[start_idx : end_idx + 1]
+                                    json_text = text[start_idx : end_idx + 1]
+                                    try:
+                                        parsed_json = json.loads(json_text)
+                                    except json.JSONDecodeError:
+                                        # Try cleanup
+                                        repaired = self._repair_json(json_text)
+                                        try:
+                                            parsed_json = json.loads(repaired)
+                                        except:
+                                            pass
 
-                            if start_idx == -1 or not text.strip():
-                                preview = (raw_content or "")[:180].replace("\n", " ")
-                                print(
-                                    f"⚠️ [OpenRouter] No JSON object/array in response; retrying. Preview: {preview}"
-                                )
-                                model_idx = (model_idx + 1) % len(candidates)
-                                await asyncio.sleep(
-                                    float(min(2 + (attempt % 4), 12))
-                                )
-                                continue
+                            if parsed_json is not None:
+                                if isinstance(parsed_json, dict):
+                                    # Add the full narrative context for "TOON" support
+                                    parsed_json["_toon_narrative"] = full_raw_text
+                                return parsed_json
+                            
+                            # If no valid JSON found but text exists, return it as a narrative
+                            if text.strip():
+                                return {"_toon_narrative": text, "summary": "Generated narrative (no JSON metadata found)"}
 
                             print(
-                                f"📩 [OpenRouter/{self.model}] JSON response ({len(text)} chars)"
+                                f"⚠️ [OpenRouter] No JSON object/array in response; retrying. Preview: {(raw_content or '')[:100]}"
                             )
-                            try:
-                                return json.loads(text)
-                            except json.JSONDecodeError:
-                                text = re.sub(r",\s*([\]}])", r"\1", text)
-                                return json.loads(text)
+                            model_idx = (model_idx + 1) % len(candidates)
+                            await asyncio.sleep(float(min(2 + (attempt % 4), 12)))
+                            continue
 
                 except json.JSONDecodeError as e:
                     preview = (text if isinstance(text, str) else "").replace("\n", " ").strip()
@@ -451,7 +477,7 @@ class OpenRouterClient:
                     if attempt >= max_attempts - 1:
                         snippet = text[:100] + "..." if len(text) > 100 else text
                         raise RuntimeError(
-                            f"JSON generation failed. Raw snippet: {snippet}. Error: {e}"
+                            f"JSON generation failed after {max_attempts} attempts. Raw snippet: {snippet}. Error: {e}"
                         )
                     await asyncio.sleep(2)
                 except aiohttp.ClientResponseError as e:
@@ -478,6 +504,62 @@ class OpenRouterClient:
             )
         finally:
             self.model = original_model
+
+    def _repair_json(self, json_str: str) -> str:
+        """
+        Attempts to repair a truncated JSON string by closing open strings,
+        objects, and arrays.
+        """
+        json_str = json_str.strip()
+        if not json_str:
+            return json_str
+
+        # 1. Handle unterminated strings
+        # We look for an odd number of unescaped quotes
+        in_string = False
+        escaped = False
+        for char in json_str:
+            if char == '"' and not escaped:
+                in_string = not in_string
+            if char == '\\' and not escaped:
+                escaped = True
+            else:
+                escaped = False
+        
+        if in_string:
+            # Check if it ended with an unescaped backslash
+            if json_str.endswith('\\') and not json_str.endswith('\\\\'):
+                json_str = json_str[:-1]
+            json_str += '"'
+
+        # 2. Handle missing closing braces/brackets
+        stack = []
+        in_string = False
+        escaped = False
+        
+        # We need to re-scan because we might have added a quote
+        for char in json_str:
+            if char == '"' and not escaped:
+                in_string = not in_string
+            if not in_string:
+                if char == '{':
+                    stack.append('}')
+                elif char == '[':
+                    stack.append(']')
+                elif char == '}' or char == ']':
+                    if stack and stack[-1] == char:
+                        stack.pop()
+            
+            if char == '\\' and not escaped:
+                escaped = True
+            else:
+                escaped = False
+
+        # Close everything in reverse order
+        while stack:
+            json_str += stack.pop()
+            
+        return json_str
 
     async def generate_with_tools(
         self,

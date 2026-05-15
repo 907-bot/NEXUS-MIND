@@ -15,9 +15,15 @@ The document should include:
 6. Deployment and dependency notes
 7. Any known issues flagged by the Critic
 
-Respond ONLY with valid JSON in this exact format:
+Your response should follow the TOON (Token Oriented Object Notation) format:
+1. Write the full markdown report first.
+2. End your response with a small JSON block for metadata.
+
+Example Output:
+# Project Title
+... full report content ...
+
 {
-  "final_content": "# Project Title\\n\\n## Summary\\n...",
   "summary": "Unified all components into a final report",
   "file_manifest": ["path/to/file1.py", "path/to/file2.tsx"]
 }
@@ -104,9 +110,11 @@ class AssemblerAgent(BaseAgent):
             stream_memory=self.memory,
         )
 
+        # In TOON format, the narrative is the main content, 
+        # and the JSON block provides metadata.
         output = {
-            "final_content":  result.get("final_content", ""),
-            "summary":        result.get("summary", ""),
+            "final_content":  result.get("_toon_narrative", result.get("final_content", "")),
+            "summary":        result.get("summary", "Assembly complete."),
             "file_manifest":  result.get("file_manifest", staged_filenames),
             "staged_files":   staged_files,
         }
