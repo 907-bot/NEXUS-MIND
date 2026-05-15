@@ -7,25 +7,22 @@ Your job is to merge multiple agent outputs and all generated source files into 
 single, cohesive, professional deliverable written as a comprehensive markdown document.
 
 The document should include:
-1. An executive summary of what was built
-2. Architecture overview
-3. All generated source files (fenced code blocks with correct language tags)
-4. API contracts / endpoint reference
-5. Data models and schemas
-6. Deployment and dependency notes
-7. Any known issues flagged by the Critic
+1. **Executive Summary**: High-level overview of the application.
+2. **Project Implementation**: Detailed technical breakdown of how the code works.
+3. **Directory Structure**: A visual tree representation of the project files.
+4. **Source Code**: All generated files with correct syntax highlighting.
+5. **API & Data Models**: Detailed specs for endpoints and schemas.
+6. **Deployment Guide**: Instructions for running the application.
 
 Your response should follow the TOON (Token Oriented Object Notation) format:
-1. Write the full markdown report first.
+1. Write the full markdown report (including the sections above) first.
 2. End your response with a small JSON block for metadata.
 
-Example Output:
-# Project Title
-... full report content ...
-
+Example Metadata:
 {
   "summary": "Unified all components into a final report",
-  "file_manifest": ["path/to/file1.py", "path/to/file2.tsx"]
+  "file_manifest": ["path/to/file1.py", "path/to/file2.tsx"],
+  "directory_structure": "project/\n├── src/\n│   └── app.py\n└── requirements.txt"
 }
 """
 
@@ -113,18 +110,20 @@ class AssemblerAgent(BaseAgent):
         # In TOON format, the narrative is the main content, 
         # and the JSON block provides metadata.
         output = {
-            "final_content":  result.get("_toon_narrative", result.get("final_content", "")),
-            "summary":        result.get("summary", "Assembly complete."),
-            "file_manifest":  result.get("file_manifest", staged_filenames),
-            "staged_files":   staged_files,
+            "final_content":       result.get("_toon_narrative", result.get("final_content", "")),
+            "summary":             result.get("summary", "Assembly complete."),
+            "file_manifest":       result.get("file_manifest", staged_filenames),
+            "directory_structure": result.get("directory_structure", ""),
+            "staged_files":        staged_files,
         }
 
         await self.memory.set(session_id, "final_output", output)
         await self.emit_event(session_id, "FINAL_OUTPUT", {
-            "summary":        output["summary"],
-            "files_assembled": len(staged_files),
-            "file_manifest":  output["file_manifest"],
-            "final_content":  output["final_content"],
+            "summary":             output["summary"],
+            "files_assembled":     len(staged_files),
+            "file_manifest":       output["file_manifest"],
+            "directory_structure": output["directory_structure"],
+            "final_content":       output["final_content"],
         })
 
         return output
