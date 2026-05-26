@@ -1,6 +1,7 @@
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold, FunctionDeclaration, Tool
 from app.config import settings
+from app.core.toon import loads as toon_loads, dumps as toon_dumps
 import json
 import re
 import asyncio
@@ -33,6 +34,12 @@ class GeminiClient:
         # Separate config for JSON mode — forces the model to return valid JSON
         # natively (SKILL.md §9.1: response_mime_type="application/json")
         self.json_config = genai.GenerationConfig(
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+            response_mime_type="application/json",
+        )
+        # TOON config - use JSON as underlying format since LLM outputs text
+        self.toon_config = genai.GenerationConfig(
             temperature=temperature,
             max_output_tokens=max_tokens,
             response_mime_type="application/json",
@@ -142,6 +149,49 @@ class GeminiClient:
                 else:
                     raise
         raise RuntimeError("JSON generation failed after retries")
+
+    async def generate_toon(self, system_prompt: str, user_message: str, **kwargs) -> dict | list:
+        """
+        Generate a structured TOON response using Gemini's native JSON mode
+        as underlying format, then encode to TOON (Token Oriented Object Notation).
+        
+        The LLM generates JSON, which is then converted to TOON for agent communication.
+        """
+        full_prompt = f"{system_prompt}\n\n{user_message}\n\nIMPORTANT: Return your response as valid JSON that will be converted to TOON format."
+        loop = asyncio.get_event_loop()
+
+        for attempt in range(3):
+            try:
+                print(f"📡 [Gemini] Sending TOON request (attempt {attempt+1})...")
+                response = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        None,
+                        lambda: self.model.generate_content(
+                            contents=full_prompt,
+                            generation_config=self.toon_config,
+                        ),
+                    ),
+                    timeout=30.0
+                )
+                self._record_usage(response)
+                text = response.text
+                print(f"📩 [Gemini] Received TOON response ({len(text)} chars)")
+                text = re.sub(r"```json|```", "", text).strip()
+                # Parse JSON and encode as TOON
+                parsed = json.loads(text)
+                return parsed  # Return dict - caller can use toon.dumps() if needed
+            except asyncio.TimeoutError:
+                print(f"⚠️ [Gemini] TOON request timed out on attempt {attempt+1}")
+                if attempt == 2:
+                    raise
+            except json.JSONDecodeError:
+                print(f"⚠️ [Gemini] Failed to parse TOON response on attempt {attempt+1}")
+            except Exception as exc:
+                if "ResourceExhausted" in type(exc).__name__ or "429" in str(exc):
+                    await asyncio.sleep(2 ** attempt)
+                else:
+                    raise
+        raise RuntimeError("TOON generation failed after retries")
 
     # ── Native Gemini Function Calling ────────────────────────────────────────
 

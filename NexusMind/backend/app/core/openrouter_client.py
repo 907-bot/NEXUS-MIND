@@ -1,6 +1,7 @@
 """
 OpenRouter Client for NexusMind
 Supports multiple free models with OpenAI-compatible API
+Uses TOON (Token Oriented Object Notation) for agent communication
 """
 import json
 import re
@@ -12,6 +13,7 @@ from typing import Any, Optional
 
 import aiohttp
 from app.config import settings
+from app.core.toon import dumps as toon_dumps, loads as toon_loads
 
 # Fix Windows SSL certificate issues
 try:
@@ -501,6 +503,156 @@ class OpenRouterClient:
             raise RuntimeError(
                 f"OpenRouter failed after {max_attempts} attempts (often HTTP 429 on free models). "
                 "Try again in a few minutes, add OpenRouter credits, or use a paid model id."
+            )
+        finally:
+            self.model = original_model
+
+    async def generate_toon(
+        self,
+        system_prompt: str,
+        user_message: str,
+        *,
+        stream_session_id: str | None = None,
+        stream_memory: Any = None,
+    ) -> dict | list:
+        """
+        Generate a TOON (Token Oriented Object Notation) structured response.
+        
+        This method generates JSON (as the underlying format for LLM output)
+        and returns it in a format ready for TOON serialization.
+        The response dict includes:
+        - _toon_encoded: The TOON-serialized string representation
+        - _toon_data: The raw parsed data
+        """
+        # Generate JSON response (which we convert to TOON)
+        json_instruction = (
+            "\n\nIMPORTANT: Your response MUST end with a valid JSON block. "
+            "You may include a clean, plain-text narrative BEFORE the JSON block. "
+            "Output the JSON structure as raw text at the very end."
+        )
+
+        messages = [
+            {"role": "system", "content": system_prompt + json_instruction},
+            {"role": "user", "content": user_message},
+        ]
+
+        original_model = self.model
+        candidates = self._json_model_candidates()
+        max_attempts = self._JSON_MAX_ATTEMPTS
+        model_idx = 0
+
+        try:
+            self.model = candidates[0]
+
+            for attempt in range(max_attempts):
+                self.model = candidates[model_idx % len(candidates)]
+                payload = {
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": self.temperature,
+                    "max_tokens": self.max_tokens,
+                }
+                try:
+                    connector = aiohttp.TCPConnector(ssl=SSL_CONTEXT) if SSL_CONTEXT else None
+                    async with aiohttp.ClientSession(connector=connector) as session:
+                        async with session.post(
+                            f"{self.BASE_URL}/chat/completions",
+                            headers=self.headers,
+                            json=payload,
+                            timeout=aiohttp.ClientTimeout(total=120),
+                        ) as response:
+                            if response.status == 429:
+                                wait = _retry_after_seconds(
+                                    response, attempt // max(1, len(candidates))
+                                )
+                                next_idx = (model_idx + 1) % len(candidates)
+                                model_idx = next_idx
+                                await asyncio.sleep(wait)
+                                continue
+
+                            if response.status >= 400:
+                                error_text = await response.text()
+                                if response.status in (400, 404):
+                                    if self.model in candidates:
+                                        candidates.remove(self.model)
+                                        if model_idx >= len(candidates):
+                                            model_idx = 0
+                                        continue
+                                raise RuntimeError(f"OpenRouter API error {response.status}: {error_text}")
+
+                            data = await response.json()
+                            usage = data.get("usage", {})
+                            self._record_usage(usage)
+
+                            raw_content = data["choices"][0]["message"]["content"]
+                            text = raw_content
+
+                            # Clean up markdown fences
+                            text = re.sub(r"```[\w+-]*", "", text)
+                            text = text.replace("```", "").strip()
+
+                            # Find JSON block
+                            start_idx = -1
+                            for i, char in enumerate(text):
+                                if char in ("{", "["):
+                                    start_idx = i
+                                    break
+
+                            parsed_json = None
+                            if start_idx != -1:
+                                end_char = "}" if text[start_idx] == "{" else "]"
+                                end_idx = text.rfind(end_char)
+                                if end_idx != -1:
+                                    json_text = text[start_idx : end_idx + 1]
+                                    try:
+                                        parsed_json = json.loads(json_text)
+                                    except json.JSONDecodeError:
+                                        repaired = self._repair_json(json_text)
+                                        try:
+                                            parsed_json = json.loads(repaired)
+                                        except:
+                                            pass
+
+                            if parsed_json is not None:
+                                # Create TOON-ready response with metadata
+                                pre_json = text[:start_idx].strip() if start_idx > 0 else ""
+                                post_json = text[end_idx + 1 :].strip() if end_idx < len(text) - 1 else ""
+                                
+                                result = {
+                                    "_toon_data": parsed_json,
+                                    "_toon_encoded": toon_dumps(parsed_json),
+                                    "_toon_narrative": "\n\n".join(filter(None, [pre_json, post_json])) or raw_content,
+                                }
+                                
+                                # Merge parsed data at top level for convenience
+                                for key, value in parsed_json.items():
+                                    if key not in result:
+                                        result[key] = value
+                                        
+                                return result
+
+                            # Fallback: return raw text as TOON-compatible response
+                            if text.strip():
+                                return {
+                                    "_toon_data": {"text": text},
+                                    "_toon_encoded": toon_dumps({"text": text}),
+                                    "_toon_narrative": text,
+                                    "summary": "Generated narrative (no structured data found)",
+                                }
+
+                            model_idx = (model_idx + 1) % len(candidates)
+                            await asyncio.sleep(float(min(2 + (attempt % 4), 12)))
+                            continue
+
+                except Exception as e:
+                    if _looks_like_rate_limit_text(str(e)) and attempt < max_attempts - 1:
+                        model_idx = (model_idx + 1) % len(candidates)
+                        await asyncio.sleep(float(min(2 ** (attempt % 6), 60)))
+                        continue
+                    raise RuntimeError(f"OpenRouter TOON generation failed: {e}")
+
+            raise RuntimeError(
+                f"OpenRouter TOON generation failed after {max_attempts} attempts."
             )
         finally:
             self.model = original_model

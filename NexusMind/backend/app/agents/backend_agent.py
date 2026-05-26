@@ -64,7 +64,7 @@ class BackendAgent(BaseAgent):
                 context_summary = "\n\nContext from previous tasks:\n" + "\n".join(relevant)
 
         # ── LLM Generation ────────────────────────────────────────────────────
-        result = await self.gemini.generate_json(
+        result = await self.gemini.generate_toon(
             BACKEND_SYSTEM,
             f"Task: {description}{context_summary}{a2a_context}",
             stream_session_id=session_id,
@@ -111,8 +111,7 @@ class BackendAgent(BaseAgent):
             "agent": self.name,
             "files": files,
             "api_contracts": api_contracts,
-            "next_agent": "AgentName",
-  "next_agent": result.get("next_agent", "AssemblerAgent"),
+            "next_agent": result.get("next_agent", "AssemblerAgent"),
             "summary": result.get("summary", ""),
             "dependencies": result.get("dependencies", []),
             "syntax_issues": syntax_issues,
@@ -134,8 +133,8 @@ class BackendAgent(BaseAgent):
 
         await self.emit_event(session_id, "TASK_COMPLETE", {
             "task_id": task_id,
-            "next_agent": "AgentName",
-  "summary": output["summary"],
+            "next_agent": output["next_agent"],
+            "summary": output["summary"],
             "files_generated": len(files),
             "api_contracts": len(api_contracts),
             "syntax_issues": len(syntax_issues),

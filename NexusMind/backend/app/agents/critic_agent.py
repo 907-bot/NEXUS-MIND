@@ -23,7 +23,7 @@ class CriticAgent(BaseAgent):
         outputs = task.get("outputs", {})
         await self.emit_event(session_id, "REVIEW_STARTED", {"outputs_count": len(outputs)})
 
-        result = await self.gemini.generate_json(
+        result = await self.gemini.generate_toon(
             CRITIC_SYSTEM,
             f"Review these agent outputs: {outputs}",
             stream_session_id=session_id,
@@ -34,7 +34,7 @@ class CriticAgent(BaseAgent):
             "score": result.get("score", 0),
             "issues": result.get("issues", []),
             "approved": result.get("approved", False),
-            "feedback": result.get("feedback", ""),
+            "feedback": result.get("feedback", result.get("_toon_narrative", "")),
         }
 
         await self.memory.set(session_id, "critic_review", output)

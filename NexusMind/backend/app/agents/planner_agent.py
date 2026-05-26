@@ -33,7 +33,7 @@ class PlannerAgent(BaseAgent):
         await self.emit_event(session_id, "PLANNING_STARTED", {"goal": goal})
 
         try:
-            plan_data = await self.gemini.generate_json(
+            plan_data = await self.gemini.generate_toon(
                 PLANNER_SYSTEM,
                 f"Goal: {goal}",
                 stream_session_id=session_id,

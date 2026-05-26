@@ -1,5 +1,5 @@
 import redis.asyncio as aioredis
-import json
+from app.core.toon import dumps, loads
 from app.config import settings
 
 
@@ -21,9 +21,9 @@ class MemoryStore:
     # ── Shared memory ────────────────────────────────────────────────────────
 
     async def set(self, session_id: str, key: str, value: any):
-        """Write a value to the session's shared memory hash."""
+        """Write a value to the session's shared memory hash using TOON."""
         await self.redis.hset(
-            f"session:{session_id}:memory", key, json.dumps(value)
+            f"session:{session_id}:memory", key, dumps(value)
         )
         # Also set a TTL of 24 h on the hash
         await self.redis.expire(f"session:{session_id}:memory", 86400)
@@ -31,12 +31,12 @@ class MemoryStore:
     async def get(self, session_id: str, key: str) -> any:
         """Read a single key from shared memory."""
         raw = await self.redis.hget(f"session:{session_id}:memory", key)
-        return json.loads(raw) if raw else None
+        return loads(raw) if raw else None
 
     async def get_all(self, session_id: str) -> dict:
         """Return all key/value pairs for a session."""
         raw = await self.redis.hgetall(f"session:{session_id}:memory")
-        return {k: json.loads(v) for k, v in raw.items()}
+        return {k: loads(v) for k, v in raw.items()}
 
     async def delete_session(self, session_id: str):
         """Remove all data for a session."""
@@ -45,9 +45,9 @@ class MemoryStore:
     # ── A2A message bus ──────────────────────────────────────────────────────
 
     async def publish_event(self, session_id: str, event: dict):
-        """Publish an agent event to the session channel."""
+        """Publish an agent event to the session channel using TOON."""
         await self.redis.publish(
-            f"session:{session_id}:events", json.dumps(event)
+            f"session:{session_id}:events", dumps(event)
         )
 
     async def subscribe(self, session_id: str):

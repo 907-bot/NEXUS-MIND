@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Request, Depends
 from sse_starlette.sse import EventSourceResponse
 from app.core.memory_store import memory_store
+from app.core.toon import loads
 from app.api.middleware import get_current_user_ws
 import asyncio
-import json
 
 router = APIRouter(prefix="/api/stream", tags=["stream"])
 
@@ -23,19 +23,16 @@ async def stream_session(
 ):
     """
     Stream agent events for a session using Server-Sent Events (SSE).
+    Uses TOON (Token Oriented Object Notation) for message serialization.
     Connect via: EventSource(`/api/stream/{session_id}?token=<jwt>`)
     """
     async def event_generator():
         pubsub = await memory_store.subscribe(session_id)
         try:
-            # Initial handshake event
+            # Initial handshake event (handcrafted TOON-compatible format)
             yield {
                 "event": "message",
-                "data": json.dumps({
-                    "agent": "System",
-                    "type": "CONNECTED",
-                    "data": {"session_id": session_id},
-                }),
+                "data": f'{{"agent": "System", "type": "CONNECTED", "data": {{"session_id": "{session_id}"}}}}',
             }
 
             while True:
@@ -53,10 +50,10 @@ async def stream_session(
 
                     # Close stream gracefully after final output
                     try:
-                        parsed = json.loads(message["data"])
-                        if parsed.get("type") in ("FINAL_OUTPUT", "PIPELINE_ERROR"):
+                        parsed = loads(message["data"])
+                        if parsed and parsed.get("type") in ("FINAL_OUTPUT", "PIPELINE_ERROR"):
                             break
-                    except (json.JSONDecodeError, AttributeError):
+                    except (ValueError, AttributeError, TypeError):
                         pass
                 else:
                     # Send a keep-alive comment to prevent proxy timeout
