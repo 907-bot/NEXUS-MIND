@@ -27,7 +27,7 @@ class ContentAgent(BaseAgent):
             "description": description,
         })
 
-        result = await self.gemini.generate_json(
+        result = await self.gemini.generate_toon(
             CONTENT_SYSTEM,
             f"Content task: {description}",
             stream_session_id=session_id,
@@ -38,17 +38,16 @@ class ContentAgent(BaseAgent):
             "task_id": task_id,
             "agent": self.name,
             "content": result.get("content", ""),
-            "next_agent": "AgentName",
-  "next_agent": result.get("next_agent", "AssemblerAgent"),
-            "summary": result.get("summary", ""),
+            "next_agent": result.get("next_agent", "AssemblerAgent"),
+            "summary": result.get("summary", result.get("_toon_narrative", "")),
             "tags": result.get("tags", []),
         }
 
         await self.store_output(session_id, task_id, output)
         await self.emit_event(session_id, "TASK_COMPLETE", {
             "task_id": task_id,
-            "next_agent": "AgentName",
-  "summary": output["summary"],
+            "next_agent": output["next_agent"],
+            "summary": output["summary"],
         })
 
         return output

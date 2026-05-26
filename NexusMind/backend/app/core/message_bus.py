@@ -1,4 +1,3 @@
-import json
 import time
 import uuid
 from app.core.memory_store import memory_store
@@ -9,6 +8,7 @@ class MessageBus:
     Agent-to-Agent (A2A) communication layer.
     Messages are published via Redis pub/sub so any subscriber
     (SSE endpoint, other agents) can consume them in real time.
+    Uses TOON (Token Oriented Object Notation) for serialization.
     """
 
     async def send(
@@ -19,7 +19,7 @@ class MessageBus:
         msg_type: str,
         payload: dict,
     ) -> str:
-        """Send a directed message between agents."""
+        """Send a directed message between agents using TOON format."""
         message = {
             "message_id": f"msg_{uuid.uuid4().hex[:8]}",
             "from_agent": from_agent,
@@ -37,7 +37,7 @@ class MessageBus:
         return message["message_id"]
 
     async def broadcast(self, session_id: str, from_agent: str, msg_type: str, data: dict):
-        """Broadcast a system-wide event (e.g., task status update)."""
+        """Broadcast a system-wide event (e.g., task status update) using TOON format."""
         event = {
             "message_id": f"msg_{uuid.uuid4().hex[:8]}",
             "from_agent": from_agent,

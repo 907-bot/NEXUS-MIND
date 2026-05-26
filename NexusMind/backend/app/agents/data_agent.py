@@ -93,12 +93,12 @@ class DataAgent(BaseAgent):
                     "sql_queries": [],
                     "validated_code": [],
                     "chart_recommendations": [],
-                    "next_agent": "AgentName",
-  "summary": raw_text[:200],
+                    "next_agent": "AssemblerAgent",
+                    "summary": raw_text[:200],
                 }
         else:
             # No tools registered yet — pure LLM fallback
-            result = await self.gemini.generate_json(
+            result = await self.gemini.generate_toon(
                 DATA_SYSTEM,
                 user_message,
                 stream_session_id=session_id,
@@ -158,7 +158,7 @@ class DataAgent(BaseAgent):
                    else '{"values": [1,2,3,4,5]}')
             )
             try:
-                chart_data = await self.gemini.generate_json(
+                chart_data = await self.gemini.generate_toon(
                     "You generate chart data as compact JSON. No explanation.",
                     chart_data_prompt,
                     stream_session_id=session_id,
@@ -193,8 +193,8 @@ class DataAgent(BaseAgent):
             "chart_recommendations": result.get("chart_recommendations", []),
             "generated_charts":      generated_charts,
             "tool_calls_made":       len(tool_call_log),
-            "next_agent": "AgentName",
-  "summary":               result.get("summary", ""),
+            "next_agent":           result.get("next_agent", "AssemblerAgent"),
+            "summary":              result.get("summary", result.get("_toon_narrative", "")),
         }
 
         await self.store_output(session_id, task_id, output)
@@ -208,8 +208,8 @@ class DataAgent(BaseAgent):
 
         await self.emit_event(session_id, "TASK_COMPLETE", {
             "task_id":          task_id,
-            "next_agent": "AgentName",
-  "summary":          output["summary"],
+            "next_agent":       output["next_agent"],
+            "summary":          output["summary"],
             "tool_calls_made":  len(tool_call_log),
             "sql_validated":    len(validated_queries),
             "charts_generated": len(generated_charts),

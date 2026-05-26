@@ -96,7 +96,7 @@ class ResearchAgent(BaseAgent):
             )
 
         # ── LLM Generation ────────────────────────────────────────────────────
-        result = await self.gemini.generate_json(
+        result = await self.gemini.generate_toon(
             RESEARCH_SYSTEM,
             f"Research topic: {description}{search_context}{scraped_context}{a2a_context}",
             stream_session_id=session_id,
@@ -119,8 +119,8 @@ class ResearchAgent(BaseAgent):
         await self.store_output(session_id, task_id, output)
         await self.emit_event(session_id, "TASK_COMPLETE", {
             "task_id": task_id,
-            "next_agent": "AgentName",
-  "summary": output["summary"],
+            "next_agent": output["next_agent"],
+            "summary": output["summary"],
         })
 
         return output

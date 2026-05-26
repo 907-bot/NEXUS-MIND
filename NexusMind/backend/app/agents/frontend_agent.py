@@ -74,7 +74,7 @@ class FrontendAgent(BaseAgent):
                     api_context += f"\n  - {f.get('filename', '')}"
 
         # ── LLM Generation ────────────────────────────────────────────────────
-        result = await self.gemini.generate_json(
+        result = await self.gemini.generate_toon(
             FRONTEND_SYSTEM,
             f"Task: {description}{api_context}{a2a_api_context}",
             stream_session_id=session_id,
@@ -116,9 +116,8 @@ class FrontendAgent(BaseAgent):
             "task_id": task_id,
             "agent": self.name,
             "files": files,
-            "next_agent": "AgentName",
-  "next_agent": result.get("next_agent", "AssemblerAgent"),
-            "summary": result.get("summary", ""),
+            "next_agent": result.get("next_agent", "AssemblerAgent"),
+            "summary": result.get("summary", result.get("_toon_narrative", "")),
             "dependencies": result.get("dependencies", []),
             "ts_issues": ts_issues,
         }
@@ -134,8 +133,8 @@ class FrontendAgent(BaseAgent):
 
         await self.emit_event(session_id, "TASK_COMPLETE", {
             "task_id": task_id,
-            "next_agent": "AgentName",
-  "summary": output["summary"],
+            "next_agent": output["next_agent"],
+            "summary": output["summary"],
             "files_generated": len(files),
         })
 

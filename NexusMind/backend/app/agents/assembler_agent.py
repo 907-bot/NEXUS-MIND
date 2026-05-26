@@ -105,7 +105,7 @@ class AssemblerAgent(BaseAgent):
             + "\n\nINSTRUCTION: Assemble all assets into the final plain-text deliverable described in the system prompt."
         )
 
-        result = await self.gemini.generate_json(
+        result = await self.gemini.generate_toon(
             ASSEMBLER_SYSTEM,
             prompt,
             stream_session_id=session_id,

@@ -43,7 +43,7 @@ class DevOpsAgent(BaseAgent):
                 )
 
         # ── LLM Generation ────────────────────────────────────────────────────
-        result = await self.gemini.generate_json(
+        result = await self.gemini.generate_toon(
             DEVOPS_SYSTEM,
             f"DevOps task: {description}{infra_context}",
             stream_session_id=session_id,
@@ -85,9 +85,8 @@ class DevOpsAgent(BaseAgent):
             "task_id": task_id,
             "agent": self.name,
             "files": files,
-            "next_agent": "AgentName",
-  "next_agent": result.get("next_agent", "AssemblerAgent"),
-            "summary": result.get("summary", ""),
+            "next_agent": result.get("next_agent", "AssemblerAgent"),
+            "summary": result.get("summary", result.get("_toon_narrative", "")),
             "tools_used": result.get("tools_used", []),
             "yaml_issues": yaml_issues,
         }
@@ -95,8 +94,8 @@ class DevOpsAgent(BaseAgent):
         await self.store_output(session_id, task_id, output)
         await self.emit_event(session_id, "TASK_COMPLETE", {
             "task_id": task_id,
-            "next_agent": "AgentName",
-  "summary": output["summary"],
+            "next_agent": output["next_agent"],
+            "summary": output["summary"],
             "yaml_issues": len(yaml_issues),
         })
 
